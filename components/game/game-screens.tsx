@@ -141,7 +141,7 @@ export function TitleScreen({ onStart, levels, maxUnlockedLevel, onSelectLevel }
 
       <button
         onClick={() => setShowLevelSelect(true)}
-        className="absolute top-16 right-4 z-10 border border-red-800/70 px-4 py-2 text-xs font-mono tracking-widest text-red-300 hover:bg-red-900/30 transition-colors"
+        className="absolute top-24 right-4 z-10 border border-red-800/70 px-4 py-2 text-xs font-mono tracking-widest text-red-300 hover:bg-red-900/30 transition-colors"
       >
         NIVELES
       </button>
