@@ -111,6 +111,13 @@ export function TitleScreen({ onStart, levels, maxUnlockedLevel, onSelectLevel }
           </div>
         </button>
 
+        <button
+          onClick={() => setShowLevelSelect(true)}
+          className="mt-14 border border-red-800/70 px-5 py-2 text-sm font-mono text-red-300 hover:bg-red-900/30 transition-colors"
+        >
+          SELECCIONAR NIVEL
+        </button>
+
         {/* Credits */}
         <div className="absolute bottom-8 left-1/2 -translate-x-1/2 text-gray-600 text-xs font-mono text-center">
           <p>Juan Patiño • Gabriel Narvaez • Edison Chacua • David Rodriguez</p>
