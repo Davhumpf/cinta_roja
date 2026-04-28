@@ -101,7 +101,7 @@ export function GameUI({
   return (
     <div className="absolute inset-0 pointer-events-none">
       {/* HUD - Top */}
-      <div className="absolute top-4 left-4 right-4 flex justify-between items-start pointer-events-auto">
+      <div className="absolute top-4 left-4 right-4 flex justify-start items-start pointer-events-auto">
         {/* Level info */}
         <div className="bg-black/90 border-2 border-red-800 px-4 py-2 font-mono max-w-sm">
           <div className="text-red-500 text-xs tracking-widest">NIVEL {level.id}</div>
@@ -114,9 +114,11 @@ export function GameUI({
             </div>
           )}
         </div>
+      </div>
 
+      <div className="absolute right-4 top-4 bottom-4 w-[230px] flex flex-col gap-3 pointer-events-auto">
         {/* Stats */}
-        <div className="bg-black/90 border-2 border-red-800 px-3 py-3 font-mono w-[230px]">
+        <div className="bg-black/90 border-2 border-red-800 px-3 py-3 font-mono">
           <div className="flex flex-col gap-2">
             {statCards.map((stat) => (
               <div key={stat.label} className="bg-black/50 border border-red-950/80 px-2 py-2">
@@ -137,11 +139,9 @@ export function GameUI({
             ))}
           </div>
         </div>
-      </div>
 
-      {/* Right rail info space between stats and controls */}
-      <div className="absolute right-4 top-44 bottom-28 w-[230px] pointer-events-auto">
-        <div className="bg-black/90 border-2 border-cyan-800 px-3 py-2 font-mono h-full overflow-y-auto">
+        {/* Right rail info space between stats and controls */}
+        <div className="bg-black/90 border-2 border-cyan-800 px-3 py-2 font-mono flex-1 overflow-y-auto">
           {puzzle && !puzzle.isSolved ? (
             <>
               <div className="text-cyan-400 text-sm font-bold">{puzzle.name}</div>
@@ -172,6 +172,17 @@ export function GameUI({
               Espacio reservado para información del nivel.
             </div>
           )}
+        </div>
+
+        {/* Controls */}
+        <div className="bg-black/90 border-2 border-gray-700 px-3 py-2 font-mono text-xs text-gray-400">
+          <div className="grid grid-cols-2 gap-x-3 gap-y-1">
+            <span>WASD / Flechas</span><span>Mover</span>
+            <span>SHIFT</span><span>Correr</span>
+            <span>E / Enter</span><span>Interactuar</span>
+            <span>I</span><span>Inventario</span>
+            <span>ESC / P</span><span>Pausa</span>
+          </div>
         </div>
       </div>
 
@@ -236,18 +247,6 @@ export function GameUI({
           </div>
         )}
 
-        <div className="ml-auto flex flex-col items-end gap-3 w-[230px]">
-          {/* Controls */}
-          <div className="bg-black/90 border-2 border-gray-700 px-3 py-2 font-mono text-xs text-gray-400 w-full">
-            <div className="grid grid-cols-2 gap-x-3 gap-y-1">
-              <span>WASD / Flechas</span><span>Mover</span>
-              <span>SHIFT</span><span>Correr</span>
-              <span>E / Enter</span><span>Interactuar</span>
-              <span>I</span><span>Inventario</span>
-              <span>ESC / P</span><span>Pausa</span>
-            </div>
-          </div>
-        </div>
       </div>
 
       {/* Dialogue box */}
