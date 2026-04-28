@@ -200,12 +200,12 @@ export function GameUI({
           </div>
         )}
 
-        <div className="ml-auto flex flex-col items-end gap-3 max-w-md">
+        <div className="ml-auto flex flex-col items-end gap-3 w-[230px]">
           {/* Puzzle Progress */}
           {puzzle && !puzzle.isSolved && (
-            <div className="bg-black/90 border-2 border-cyan-800 px-4 py-2 font-mono w-full">
+            <div className="bg-black/90 border-2 border-cyan-800 px-3 py-2 font-mono w-full">
               <div className="text-cyan-400 text-sm font-bold">{puzzle.name}</div>
-              <div className="text-gray-400 text-xs">{puzzle.description}</div>
+              <div className="text-gray-400 text-xs leading-tight whitespace-normal break-words">{puzzle.description}</div>
               {(puzzle.type === 'sequence' || puzzle.type === 'memory') && puzzle.sequenceSwitches && (
                 <div className="flex gap-1 mt-2">
                   {(puzzle.sequenceSwitches || puzzle.memorySequence || []).map((_, i) => (
@@ -220,9 +220,9 @@ export function GameUI({
                   ))}
                 </div>
               )}
-              <div className="text-gray-500 text-xs mt-1 italic">{puzzle.hint}</div>
+              <div className="text-gray-500 text-xs mt-1 italic leading-tight whitespace-normal break-words">{puzzle.hint}</div>
               {puzzle.id === 'fusebox_puzzle' && (
-                <div className="text-amber-300 text-xs mt-2">
+                <div className="text-amber-300 text-xs mt-2 leading-tight whitespace-normal break-words">
                   Acércate a la caja y presiona E. Si ya encontraste el siguiente fusible correcto, lo insertará.
                 </div>
               )}
@@ -230,8 +230,8 @@ export function GameUI({
           )}
 
           {/* Controls */}
-          <div className="bg-black/90 border-2 border-gray-700 px-4 py-2 font-mono text-xs text-gray-400 w-full">
-            <div className="grid grid-cols-2 gap-x-4 gap-y-1">
+          <div className="bg-black/90 border-2 border-gray-700 px-3 py-2 font-mono text-xs text-gray-400 w-full">
+            <div className="grid grid-cols-2 gap-x-3 gap-y-1">
               <span>WASD / Flechas</span><span>Mover</span>
               <span>SHIFT</span><span>Correr</span>
               <span>E / Enter</span><span>Interactuar</span>
