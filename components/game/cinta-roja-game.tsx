@@ -17,6 +17,7 @@ export function CintaRojaGame() {
     advanceDialogue,
     getCurrentDialogue,
     maxUnlockedLevel,
+    setScreen,
   } = useGameEngine()
 
   const [isMounted, setIsMounted] = useState(false)
@@ -98,6 +99,7 @@ export function CintaRojaGame() {
             <PauseScreen
               onResume={togglePause}
               onQuit={() => window.location.reload()}
+              onOpenLevels={() => setScreen('title')}
               currentLevel={gameState.currentLevel + 1}
               totalTapes={gameState.totalTapesCollected}
             />
