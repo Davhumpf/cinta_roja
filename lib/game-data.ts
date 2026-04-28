@@ -831,8 +831,8 @@ export const levels: Level[] = [
     playerStart: { x: 100, y: 700 },
     backgroundColor: '#12121a',
     ambientColor: '#08080f',
-    fogOfWar: true,
-    visibilityRadius: 120,
+    fogOfWar: false,
+    visibilityRadius: 180,
     obstacles: [
       { id: 'wall_top', type: 'wall', position: { x: 0, y: 0 }, width: 1000, height: 40, solid: true },
       { id: 'wall_bottom', type: 'wall', position: { x: 0, y: 760 }, width: 1000, height: 40, solid: true },

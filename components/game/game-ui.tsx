@@ -71,10 +71,37 @@ export function GameUI({
     }
   }, [currentDialogue])
 
+  const statCards = [
+    {
+      label: 'SALUD',
+      value: player.health,
+      valueClass: 'text-red-400',
+      labelClass: 'text-red-500',
+      borderClass: 'border-red-900',
+      barColor: player.health > 50 ? '#22c55e' : player.health > 25 ? '#eab308' : '#ef4444',
+    },
+    {
+      label: 'CORDURA',
+      value: player.sanity,
+      valueClass: 'text-purple-400',
+      labelClass: 'text-purple-500',
+      borderClass: 'border-purple-900',
+      barColor: '#9333ea',
+    },
+    {
+      label: 'STAMINA',
+      value: player.stamina,
+      valueClass: 'text-yellow-400',
+      labelClass: 'text-yellow-500',
+      borderClass: 'border-yellow-900',
+      barColor: '#eab308',
+    },
+  ]
+
   return (
     <div className="absolute inset-0 pointer-events-none">
       {/* HUD - Top */}
-      <div className="absolute top-4 left-4 right-4 flex justify-between items-start pointer-events-auto">
+      <div className="absolute top-4 left-4 right-4 flex justify-start items-start pointer-events-auto">
         {/* Level info */}
         <div className="bg-black/90 border-2 border-red-800 px-4 py-2 font-mono max-w-sm">
           <div className="text-red-500 text-xs tracking-widest">NIVEL {level.id}</div>
@@ -87,58 +114,80 @@ export function GameUI({
             </div>
           )}
         </div>
+      </div>
 
+      <div className="absolute right-4 top-4 bottom-4 w-[230px] flex flex-col gap-3 pointer-events-auto">
         {/* Stats */}
-        <div className="flex gap-3">
-          {/* Health */}
-          <div className="bg-black/90 border-2 border-red-800 px-3 py-2 font-mono">
-            <div className="text-red-500 text-xs tracking-widest mb-1">SALUD</div>
-            <div className="flex items-center gap-2">
-              <div className="w-20 h-3 bg-gray-800 border border-red-900">
-                <div 
-                  className="h-full transition-all duration-300"
-                  style={{ 
-                    width: `${player.health}%`,
-                    backgroundColor: player.health > 50 ? '#22c55e' : player.health > 25 ? '#eab308' : '#ef4444'
-                  }}
-                />
+        <div className="bg-black/90 border-2 border-red-800 px-3 py-3 font-mono">
+          <div className="flex flex-col gap-2">
+            {statCards.map((stat) => (
+              <div key={stat.label} className="bg-black/50 border border-red-950/80 px-2 py-2">
+                <div className={`text-xs tracking-widest mb-1 ${stat.labelClass}`}>{stat.label}</div>
+                <div className="flex items-center gap-2">
+                  <div className={`flex-1 h-3 bg-gray-800 border ${stat.borderClass}`}>
+                    <div
+                      className="h-full transition-all duration-300"
+                      style={{
+                        width: `${stat.value}%`,
+                        backgroundColor: stat.barColor,
+                      }}
+                    />
+                  </div>
+                  <span className={`text-xs w-10 text-right ${stat.valueClass}`}>{Math.round(stat.value)}%</span>
+                </div>
               </div>
-              <span className="text-red-400 text-xs w-8">{Math.round(player.health)}%</span>
-            </div>
+            ))}
           </div>
+        </div>
 
-          {/* Sanity */}
-          <div className="bg-black/90 border-2 border-red-800 px-3 py-2 font-mono">
-            <div className="text-purple-500 text-xs tracking-widest mb-1">CORDURA</div>
-            <div className="flex items-center gap-2">
-              <div className="w-20 h-3 bg-gray-800 border border-purple-900">
-                <div 
-                  className="h-full bg-purple-600 transition-all duration-300"
-                  style={{ width: `${player.sanity}%` }}
-                />
-              </div>
-              <span className="text-purple-400 text-xs w-8">{Math.round(player.sanity)}%</span>
+        {/* Right rail info space between stats and controls */}
+        <div className="bg-black/90 border-2 border-cyan-800 px-3 py-2 font-mono flex-1 overflow-y-auto">
+          {puzzle && !puzzle.isSolved ? (
+            <>
+              <div className="text-cyan-400 text-sm font-bold">{puzzle.name}</div>
+              <div className="text-gray-400 text-xs leading-tight whitespace-normal break-words">{puzzle.description}</div>
+              {(puzzle.type === 'sequence' || puzzle.type === 'memory') && puzzle.sequenceSwitches && (
+                <div className="flex gap-1 mt-2">
+                  {(puzzle.sequenceSwitches || puzzle.memorySequence || []).map((_, i) => (
+                    <div
+                      key={i}
+                      className={`w-4 h-4 rounded transition-all ${
+                        i < (puzzle.currentSequenceIndex || 0)
+                          ? 'bg-green-500 shadow-lg shadow-green-500/50'
+                          : 'bg-gray-700'
+                      }`}
+                    />
+                  ))}
+                </div>
+              )}
+              <div className="text-gray-500 text-xs mt-1 italic leading-tight whitespace-normal break-words">{puzzle.hint}</div>
+              {puzzle.id === 'fusebox_puzzle' && (
+                <div className="text-amber-300 text-xs mt-2 leading-tight whitespace-normal break-words">
+                  Acércate a la caja y presiona E. Si ya encontraste el siguiente fusible correcto, lo insertará.
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="h-full flex items-center justify-center text-center text-xs text-cyan-200/70">
+              Espacio reservado para información del nivel.
             </div>
-          </div>
+          )}
+        </div>
 
-          {/* Stamina */}
-          <div className="bg-black/90 border-2 border-red-800 px-3 py-2 font-mono">
-            <div className="text-yellow-500 text-xs tracking-widest mb-1">STAMINA</div>
-            <div className="flex items-center gap-2">
-              <div className="w-20 h-3 bg-gray-800 border border-yellow-900">
-                <div 
-                  className="h-full bg-yellow-500 transition-all duration-300"
-                  style={{ width: `${player.stamina}%` }}
-                />
-              </div>
-              <span className="text-yellow-400 text-xs w-8">{Math.round(player.stamina)}%</span>
-            </div>
+        {/* Controls */}
+        <div className="bg-black/90 border-2 border-gray-700 px-3 py-2 font-mono text-xs text-gray-400">
+          <div className="grid grid-cols-2 gap-x-3 gap-y-1">
+            <span>WASD / Flechas</span><span>Mover</span>
+            <span>SHIFT</span><span>Correr</span>
+            <span>E / Enter</span><span>Interactuar</span>
+            <span>I</span><span>Inventario</span>
+            <span>ESC / P</span><span>Pausa</span>
           </div>
         </div>
       </div>
 
       {/* HUD - Bottom */}
-      <div className="absolute bottom-4 left-4 right-4 flex justify-between items-end pointer-events-auto">
+      <div className="absolute bottom-4 left-4 right-4 flex justify-between items-end pointer-events-auto gap-4">
         {/* Tapes & Inventory */}
         <div className="flex gap-3">
           <div className="bg-black/90 border-2 border-red-800 px-4 py-2 font-mono">
@@ -190,34 +239,6 @@ export function GameUI({
           </div>
         )}
 
-        {/* Puzzle Progress */}
-        {puzzle && !puzzle.isSolved && (
-          <div className="bg-black/90 border-2 border-cyan-800 px-4 py-2 font-mono">
-            <div className="text-cyan-400 text-sm font-bold">{puzzle.name}</div>
-            <div className="text-gray-400 text-xs">{puzzle.description}</div>
-            {(puzzle.type === 'sequence' || puzzle.type === 'memory') && puzzle.sequenceSwitches && (
-              <div className="flex gap-1 mt-2">
-                {(puzzle.sequenceSwitches || puzzle.memorySequence || []).map((_, i) => (
-                  <div 
-                    key={i}
-                    className={`w-4 h-4 rounded transition-all ${
-                      i < (puzzle.currentSequenceIndex || 0)
-                        ? 'bg-green-500 shadow-lg shadow-green-500/50'
-                        : 'bg-gray-700'
-                    }`}
-                  />
-                ))}
-              </div>
-            )}
-            <div className="text-gray-500 text-xs mt-1 italic">{puzzle.hint}</div>
-            {puzzle.id === 'fusebox_puzzle' && (
-              <div className="text-amber-300 text-xs mt-2">
-                Acércate a la caja y presiona E. Si ya encontraste el siguiente fusible correcto, lo insertará.
-              </div>
-            )}
-          </div>
-        )}
-
         {/* Hiding Indicator */}
         {player.isHiding && (
           <div className="bg-green-900/90 border-2 border-green-500 px-4 py-2 font-mono animate-pulse">
@@ -226,16 +247,6 @@ export function GameUI({
           </div>
         )}
 
-        {/* Controls */}
-        <div className="bg-black/90 border-2 border-gray-700 px-4 py-2 font-mono text-xs text-gray-400">
-          <div className="grid grid-cols-2 gap-x-4 gap-y-1">
-            <span>WASD / Flechas</span><span>Mover</span>
-            <span>SHIFT</span><span>Correr</span>
-            <span>E / Enter</span><span>Interactuar</span>
-            <span>I</span><span>Inventario</span>
-            <span>ESC / P</span><span>Pausa</span>
-          </div>
-        </div>
       </div>
 
       {/* Dialogue box */}
