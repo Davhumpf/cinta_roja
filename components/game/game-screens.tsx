@@ -4,11 +4,15 @@ import { useEffect, useState } from 'react'
 
 interface TitleScreenProps {
   onStart: () => void
+  levels: Array<{ id: number; name: string }>
+  maxUnlockedLevel: number
+  onSelectLevel: (levelIndex: number) => void
 }
 
-export function TitleScreen({ onStart }: TitleScreenProps) {
+export function TitleScreen({ onStart, levels, maxUnlockedLevel, onSelectLevel }: TitleScreenProps) {
   const [showPrompt, setShowPrompt] = useState(true)
   const [glitchText, setGlitchText] = useState('CINTA ROJA')
+  const [showLevelSelect, setShowLevelSelect] = useState(false)
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -107,6 +111,13 @@ export function TitleScreen({ onStart }: TitleScreenProps) {
           </div>
         </button>
 
+        <button
+          onClick={() => setShowLevelSelect(true)}
+          className="mt-14 border border-red-800/70 px-5 py-2 text-sm font-mono text-red-300 hover:bg-red-900/30 transition-colors"
+        >
+          SELECCIONAR NIVEL
+        </button>
+
         {/* Credits */}
         <div className="absolute bottom-8 left-1/2 -translate-x-1/2 text-gray-600 text-xs font-mono text-center">
           <p>Juan Patiño • Gabriel Narvaez • Edison Chacua • David Rodriguez</p>
@@ -127,6 +138,49 @@ export function TitleScreen({ onStart }: TitleScreenProps) {
       <div className="absolute bottom-4 right-4 text-red-800 font-mono text-sm">
         ░░ VHS ░░
       </div>
+
+      {showLevelSelect && (
+        <div className="absolute inset-0 z-20 bg-black/85 flex items-center justify-center p-4">
+          <div className="w-full max-w-xl border-2 border-red-800 bg-black p-5 font-mono">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-red-400 text-lg tracking-wider">SELECCIÓN DE NIVEL</h3>
+              <button
+                onClick={() => setShowLevelSelect(false)}
+                className="text-gray-400 hover:text-white"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="grid gap-2">
+              {levels.map((level, index) => {
+                const isLocked = index > maxUnlockedLevel
+                return (
+                  <button
+                    key={level.id}
+                    disabled={isLocked}
+                    onClick={() => {
+                      onSelectLevel(index)
+                      setShowLevelSelect(false)
+                    }}
+                    className={`w-full border px-4 py-3 text-left transition-colors ${
+                      isLocked
+                        ? 'border-gray-800 text-gray-600 cursor-not-allowed'
+                        : 'border-red-800/80 text-gray-200 hover:bg-red-900/30'
+                    }`}
+                  >
+                    <div className="flex justify-between items-center">
+                      <span>NIVEL {level.id} · {level.name}</span>
+                      <span>{isLocked ? '🔒' : '▶'}</span>
+                    </div>
+                    {isLocked && <div className="text-xs text-gray-500 mt-1">Completa el nivel anterior para desbloquearlo</div>}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }

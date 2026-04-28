@@ -116,7 +116,7 @@ export function GameUI({
         </div>
 
         {/* Stats */}
-        <div className="bg-black/90 border-2 border-red-800 px-3 py-3 font-mono min-w-[220px]">
+        <div className="bg-black/90 border-2 border-red-800 px-3 py-3 font-mono w-[230px]">
           <div className="flex flex-col gap-2">
             {statCards.map((stat) => (
               <div key={stat.label} className="bg-black/50 border border-red-950/80 px-2 py-2">
@@ -136,6 +136,42 @@ export function GameUI({
               </div>
             ))}
           </div>
+        </div>
+      </div>
+
+      {/* Right rail info space between stats and controls */}
+      <div className="absolute right-4 top-44 bottom-28 w-[230px] pointer-events-auto">
+        <div className="bg-black/90 border-2 border-cyan-800 px-3 py-2 font-mono h-full overflow-y-auto">
+          {puzzle && !puzzle.isSolved ? (
+            <>
+              <div className="text-cyan-400 text-sm font-bold">{puzzle.name}</div>
+              <div className="text-gray-400 text-xs leading-tight whitespace-normal break-words">{puzzle.description}</div>
+              {(puzzle.type === 'sequence' || puzzle.type === 'memory') && puzzle.sequenceSwitches && (
+                <div className="flex gap-1 mt-2">
+                  {(puzzle.sequenceSwitches || puzzle.memorySequence || []).map((_, i) => (
+                    <div
+                      key={i}
+                      className={`w-4 h-4 rounded transition-all ${
+                        i < (puzzle.currentSequenceIndex || 0)
+                          ? 'bg-green-500 shadow-lg shadow-green-500/50'
+                          : 'bg-gray-700'
+                      }`}
+                    />
+                  ))}
+                </div>
+              )}
+              <div className="text-gray-500 text-xs mt-1 italic leading-tight whitespace-normal break-words">{puzzle.hint}</div>
+              {puzzle.id === 'fusebox_puzzle' && (
+                <div className="text-amber-300 text-xs mt-2 leading-tight whitespace-normal break-words">
+                  Acércate a la caja y presiona E. Si ya encontraste el siguiente fusible correcto, lo insertará.
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="h-full flex items-center justify-center text-center text-xs text-cyan-200/70">
+              Espacio reservado para información del nivel.
+            </div>
+          )}
         </div>
       </div>
 
@@ -201,34 +237,6 @@ export function GameUI({
         )}
 
         <div className="ml-auto flex flex-col items-end gap-3 w-[230px]">
-          {/* Puzzle Progress */}
-          {puzzle && !puzzle.isSolved && (
-            <div className="bg-black/90 border-2 border-cyan-800 px-3 py-2 font-mono w-full">
-              <div className="text-cyan-400 text-sm font-bold">{puzzle.name}</div>
-              <div className="text-gray-400 text-xs leading-tight whitespace-normal break-words">{puzzle.description}</div>
-              {(puzzle.type === 'sequence' || puzzle.type === 'memory') && puzzle.sequenceSwitches && (
-                <div className="flex gap-1 mt-2">
-                  {(puzzle.sequenceSwitches || puzzle.memorySequence || []).map((_, i) => (
-                    <div
-                      key={i}
-                      className={`w-4 h-4 rounded transition-all ${
-                        i < (puzzle.currentSequenceIndex || 0)
-                          ? 'bg-green-500 shadow-lg shadow-green-500/50'
-                          : 'bg-gray-700'
-                      }`}
-                    />
-                  ))}
-                </div>
-              )}
-              <div className="text-gray-500 text-xs mt-1 italic leading-tight whitespace-normal break-words">{puzzle.hint}</div>
-              {puzzle.id === 'fusebox_puzzle' && (
-                <div className="text-amber-300 text-xs mt-2 leading-tight whitespace-normal break-words">
-                  Acércate a la caja y presiona E. Si ya encontraste el siguiente fusible correcto, lo insertará.
-                </div>
-              )}
-            </div>
-          )}
-
           {/* Controls */}
           <div className="bg-black/90 border-2 border-gray-700 px-3 py-2 font-mono text-xs text-gray-400 w-full">
             <div className="grid grid-cols-2 gap-x-3 gap-y-1">
