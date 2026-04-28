@@ -13,8 +13,11 @@ export function CintaRojaGame() {
     currentLevel,
     startGame,
     togglePause,
+    toggleInventory,
     advanceDialogue,
     getCurrentDialogue,
+    maxUnlockedLevel,
+    setScreen,
   } = useGameEngine()
 
   const [isMounted, setIsMounted] = useState(false)
@@ -37,11 +40,16 @@ export function CintaRojaGame() {
     <div className="relative w-full min-h-screen bg-black overflow-hidden">
       {/* Title Screen */}
       {screen === 'title' && (
-        <TitleScreen onStart={startGame} />
+        <TitleScreen
+          onStart={() => startGame(0)}
+          levels={gameState.levels.map(level => ({ id: level.id, name: level.name }))}
+          maxUnlockedLevel={maxUnlockedLevel}
+          onSelectLevel={startGame}
+        />
       )}
 
       {/* Game Screen */}
-      {(screen === 'playing' || screen === 'pause' || screen === 'dialogue') && (
+      {(screen === 'playing' || screen === 'pause' || screen === 'dialogue' || screen === 'inventory') && (
         <div className="relative w-full h-screen flex items-center justify-center bg-black">
           {/* Camera container with scroll */}
           <div 
@@ -82,6 +90,8 @@ export function CintaRojaGame() {
             onAdvanceDialogue={advanceDialogue}
             totalTapes={gameState.totalTapesCollected}
             memoriesCount={gameState.memoriesUnlocked.length}
+            showInventory={screen === 'inventory'}
+            onCloseInventory={toggleInventory}
           />
 
           {/* Pause overlay */}
@@ -89,6 +99,7 @@ export function CintaRojaGame() {
             <PauseScreen
               onResume={togglePause}
               onQuit={() => window.location.reload()}
+              onOpenLevels={() => setScreen('title')}
               currentLevel={gameState.currentLevel + 1}
               totalTapes={gameState.totalTapesCollected}
             />
