@@ -4,11 +4,15 @@ import { useEffect, useState } from 'react'
 
 interface TitleScreenProps {
   onStart: () => void
+  levels: Array<{ id: number; name: string }>
+  maxUnlockedLevel: number
+  onSelectLevel: (levelIndex: number) => void
 }
 
-export function TitleScreen({ onStart }: TitleScreenProps) {
+export function TitleScreen({ onStart, levels, maxUnlockedLevel, onSelectLevel }: TitleScreenProps) {
   const [showPrompt, setShowPrompt] = useState(true)
   const [glitchText, setGlitchText] = useState('CINTA ROJA')
+  const [showLevelSelect, setShowLevelSelect] = useState(false)
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -127,6 +131,63 @@ export function TitleScreen({ onStart }: TitleScreenProps) {
       <div className="absolute bottom-4 right-4 text-red-800 font-mono text-sm">
         ░░ VHS ░░
       </div>
+
+      <button
+        onClick={() => setShowLevelSelect(true)}
+        className="absolute top-24 right-4 z-10 border border-red-800/70 px-4 py-2 text-xs font-mono tracking-widest text-red-300 hover:bg-red-900/30 transition-colors"
+      >
+        NIVELES
+      </button>
+
+      {showLevelSelect && (
+        <div className="absolute inset-0 z-20 bg-black/85 flex items-center justify-center p-4">
+          <div className="w-full max-w-5xl border-2 border-red-800 bg-black p-5 font-mono">
+            <div className="flex items-center justify-between mb-4">
+              <h3 className="text-red-400 text-lg tracking-wider">SELECCIÓN DE NIVEL</h3>
+              <button
+                onClick={() => setShowLevelSelect(false)}
+                className="text-gray-400 hover:text-white"
+              >
+                ✕
+              </button>
+            </div>
+
+            <div className="grid grid-cols-5 gap-3">
+              {levels.map((level, index) => {
+                const isLocked = index > maxUnlockedLevel
+                return (
+                  <button
+                    key={level.id}
+                    disabled={isLocked}
+                    onClick={() => {
+                      onSelectLevel(index)
+                      setShowLevelSelect(false)
+                    }}
+                    className={`aspect-square border p-3 text-left transition-colors ${
+                      isLocked
+                        ? 'border-gray-800 text-gray-600 cursor-not-allowed'
+                        : 'border-red-800/80 text-gray-200 hover:bg-red-900/30'
+                    }`}
+                  >
+                    <div className="h-full flex flex-col justify-between">
+                      <div className="flex justify-between items-start">
+                        <span className="text-xs tracking-widest">NIVEL {level.id}</span>
+                        <span>{isLocked ? '🔒' : '▶'}</span>
+                      </div>
+                      <div className="text-sm text-gray-300 leading-tight">{level.name}</div>
+                    </div>
+                    {isLocked && (
+                      <div className="text-[10px] text-gray-500 mt-2 leading-tight">
+                        Completa el anterior
+                      </div>
+                    )}
+                  </button>
+                )
+              })}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
@@ -134,11 +195,12 @@ export function TitleScreen({ onStart }: TitleScreenProps) {
 interface PauseScreenProps {
   onResume: () => void
   onQuit: () => void
+  onOpenLevels: () => void
   currentLevel: number
   totalTapes: number
 }
 
-export function PauseScreen({ onResume, onQuit, currentLevel, totalTapes }: PauseScreenProps) {
+export function PauseScreen({ onResume, onQuit, onOpenLevels, currentLevel, totalTapes }: PauseScreenProps) {
   return (
     <div className="absolute inset-0 bg-black/90 flex items-center justify-center z-50">
       <div className="text-center">
@@ -160,6 +222,12 @@ export function PauseScreen({ onResume, onQuit, currentLevel, totalTapes }: Paus
             className="block w-64 mx-auto bg-red-900/50 border-2 border-red-700 text-red-100 py-3 px-6 font-mono text-lg hover:bg-red-800/50 transition-colors"
           >
             ▶ CONTINUAR
+          </button>
+          <button
+            onClick={onOpenLevels}
+            className="block w-64 mx-auto bg-amber-900/40 border-2 border-amber-700 text-amber-100 py-3 px-6 font-mono text-lg hover:bg-amber-800/40 transition-colors"
+          >
+            ▦ NIVELES
           </button>
           <button
             onClick={onQuit}

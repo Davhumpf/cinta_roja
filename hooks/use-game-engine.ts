@@ -7,6 +7,7 @@ import { initialPlayer, levels, dialogues } from '@/lib/game-data'
 const GAME_TICK = 1000 / 60
 
 export function useGameEngine() {
+  const [maxUnlockedLevel, setMaxUnlockedLevel] = useState(0)
   const [gameState, setGameState] = useState<GameState>({
     currentLevel: 0,
     player: { ...initialPlayer },
@@ -51,6 +52,17 @@ export function useGameEngine() {
   const [activeValve, setActiveValve] = useState<string | null>(null)
   const [valveValues, setValveValues] = useState<Record<string, number>>({})
   const [sequenceProgress, setSequenceProgress] = useState<string[]>([])
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const savedUnlocked = window.localStorage.getItem('cinta-roja-max-unlocked-level')
+    if (!savedUnlocked) return
+
+    const parsed = Number.parseInt(savedUnlocked, 10)
+    if (!Number.isNaN(parsed)) {
+      setMaxUnlockedLevel(Math.min(Math.max(parsed, 0), levels.length - 1))
+    }
+  }, [])
   
   const keysRef = useRef<GameKeys>({
     up: false,
@@ -87,12 +99,13 @@ export function useGameEngine() {
   }, [])
 
   // Start new game
-  const startGame = useCallback(() => {
+  const startGame = useCallback((requestedLevel = 0) => {
+    const safeLevel = Math.min(Math.max(requestedLevel, 0), maxUnlockedLevel, levels.length - 1)
     const newLevels = cloneLevels()
 
     setGameState({
-      currentLevel: 0,
-      player: { ...initialPlayer, position: { ...newLevels[0].playerStart }, inventory: [] },
+      currentLevel: safeLevel,
+      player: { ...initialPlayer, position: { ...newLevels[safeLevel].playerStart }, inventory: [] },
       levels: newLevels,
       dialogues,
       currentDialogue: null,
@@ -118,7 +131,7 @@ export function useGameEngine() {
     setValveValues({})
     setSequenceProgress([])
 
-    const introDialogues = newLevels[0].introDialogueIds
+    const introDialogues = newLevels[safeLevel].introDialogueIds
     if (introDialogues.length > 0) {
       setDialogueQueue(introDialogues)
       setCurrentDialogueIndex(0)
@@ -126,7 +139,7 @@ export function useGameEngine() {
     } else {
       setScreen('playing')
     }
-  }, [cloneLevels])
+  }, [cloneLevels, maxUnlockedLevel])
 
   // Restart current level
   const restartLevel = useCallback(() => {
@@ -540,6 +553,12 @@ export function useGameEngine() {
           return { ...newState, player: newPlayer, levels: newLevels, isVictory: true }
         } else {
           const nextLevel = prev.currentLevel + 1
+          if (nextLevel > maxUnlockedLevel) {
+            setMaxUnlockedLevel(nextLevel)
+            if (typeof window !== 'undefined') {
+              window.localStorage.setItem('cinta-roja-max-unlocked-level', String(nextLevel))
+            }
+          }
           const nextLevelData = newLevels[nextLevel]
           newPlayer.position = { ...nextLevelData.playerStart }
           newPlayer.tapes = 0
@@ -565,7 +584,7 @@ export function useGameEngine() {
 
       return { ...newState, player: newPlayer }
     })
-  }, [checkCollision, detectionCount])
+  }, [checkCollision, detectionCount, maxUnlockedLevel])
 
   // Handle switch activation
   const activateSwitch = useCallback((switchObj: Switch) => {
@@ -886,8 +905,8 @@ export function useGameEngine() {
           let currentId: string | undefined = dialogueId
           while (currentId) {
             dialogueChain.push(currentId)
-            const dialogue = prev.dialogues[currentId]
-            currentId = dialogue?.nextDialogueId
+            const dialogueData: Dialogue | undefined = prev.dialogues[currentId]
+            currentId = dialogueData?.nextDialogueId
           }
           
           if (dialogueChain.length > 0) {
@@ -1169,5 +1188,6 @@ export function useGameEngine() {
     setValveValues,
     setActiveValve,
     setScreen,
+    maxUnlockedLevel,
   }
 }
