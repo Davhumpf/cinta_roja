@@ -1094,20 +1094,21 @@ export function GameRenderer({ level, player, glitchIntensity, showVHSEffect, va
 
     if (level.isDark && player.hasFlashlight) {
       const intensity = player.flashlightBroken ? getBrokenFlashlightIntensity(frame) : 1
-      const radius = baseRadius * (0.82 + intensity * 0.24)
-      const beamLength = radius * 1.62
-      const beamSpread = radius * 0.54
+      const radius = baseRadius * (0.9 + intensity * 0.3)
+      const beamLength = radius * 1.72
+      const beamSpread = radius * 0.62
       const flashlight = getFlashlightOrigin(player)
 
       ctx.save()
-      ctx.fillStyle = `rgba(0, 0, 0, ${0.94 + (1 - intensity) * 0.04})`
+      ctx.fillStyle = `rgba(0, 0, 0, ${0.88 + (1 - intensity) * 0.04})`
       ctx.fillRect(0, 0, level.width, level.height)
 
       ctx.globalCompositeOperation = 'destination-out'
 
       const haloMask = ctx.createRadialGradient(playerCenterX, playerCenterY, 0, playerCenterX, playerCenterY, radius)
-      haloMask.addColorStop(0, `rgba(0, 0, 0, ${0.72 * intensity})`)
-      haloMask.addColorStop(0.45, `rgba(0, 0, 0, ${0.42 * intensity})`)
+      haloMask.addColorStop(0, `rgba(0, 0, 0, ${0.92 * intensity})`)
+      haloMask.addColorStop(0.4, `rgba(0, 0, 0, ${0.65 * intensity})`)
+      haloMask.addColorStop(0.75, `rgba(0, 0, 0, ${0.28 * intensity})`)
       haloMask.addColorStop(1, 'rgba(0, 0, 0, 0)')
       ctx.fillStyle = haloMask
       ctx.fillRect(playerCenterX - radius, playerCenterY - radius, radius * 2, radius * 2)
@@ -1116,15 +1117,15 @@ export function GameRenderer({ level, player, glitchIntensity, showVHSEffect, va
       ctx.rotate(flashlight.angle)
 
       const coneLayers = [
-        { spread: 1.18, alpha: 0.24 },
-        { spread: 0.82, alpha: 0.44 },
-        { spread: 0.5, alpha: 0.72 },
+        { spread: 1.22, alpha: 0.38 },
+        { spread: 0.85, alpha: 0.62 },
+        { spread: 0.5, alpha: 0.88 },
       ]
 
       for (const layer of coneLayers) {
         const coneGradient = ctx.createLinearGradient(0, 0, beamLength, 0)
         coneGradient.addColorStop(0, `rgba(0, 0, 0, ${layer.alpha * intensity})`)
-        coneGradient.addColorStop(0.82, `rgba(0, 0, 0, ${layer.alpha * 0.35 * intensity})`)
+        coneGradient.addColorStop(0.7, `rgba(0, 0, 0, ${layer.alpha * 0.4 * intensity})`)
         coneGradient.addColorStop(1, 'rgba(0, 0, 0, 0)')
 
         ctx.fillStyle = coneGradient
@@ -1138,15 +1139,15 @@ export function GameRenderer({ level, player, glitchIntensity, showVHSEffect, va
 
       ctx.restore()
 
-      drawLight(ctx, flashlight.x, flashlight.y, radius * 0.82, WARM_LIGHT, 0.2 + intensity * 0.12)
+      drawLight(ctx, flashlight.x, flashlight.y, radius * 0.9, WARM_LIGHT, 0.25 + intensity * 0.15)
 
       ctx.save()
       ctx.globalCompositeOperation = 'screen'
       ctx.translate(flashlight.x, flashlight.y)
       ctx.rotate(flashlight.angle)
       const beamGlow = ctx.createLinearGradient(0, 0, beamLength, 0)
-      beamGlow.addColorStop(0, rgba(WARM_LIGHT, 0.13 + intensity * 0.08))
-      beamGlow.addColorStop(0.56, rgba(WARM_LIGHT, 0.055 + intensity * 0.03))
+      beamGlow.addColorStop(0, rgba(WARM_LIGHT, 0.16 + intensity * 0.1))
+      beamGlow.addColorStop(0.5, rgba(WARM_LIGHT, 0.07 + intensity * 0.04))
       beamGlow.addColorStop(1, rgba(WARM_LIGHT, 0))
       ctx.fillStyle = beamGlow
       ctx.beginPath()
