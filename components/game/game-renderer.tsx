@@ -1327,7 +1327,7 @@ export function GameRenderer({ level, player, glitchIntensity, showVHSEffect, va
     }
 
     ctx.save()
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.94)'
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.88)'
     ctx.fillRect(0, 0, level.width, level.height)
 
     ctx.globalCompositeOperation = 'destination-out'
@@ -1339,8 +1339,8 @@ export function GameRenderer({ level, player, glitchIntensity, showVHSEffect, va
       playerCenterY,
       baseRadius
     )
-    revealGradient.addColorStop(0, 'rgba(0, 0, 0, 0.9)')
-    revealGradient.addColorStop(0.62, 'rgba(0, 0, 0, 0.42)')
+    revealGradient.addColorStop(0, 'rgba(0, 0, 0, 0.96)')
+    revealGradient.addColorStop(0.62, 'rgba(0, 0, 0, 0.58)')
     revealGradient.addColorStop(1, 'rgba(0, 0, 0, 0)')
     ctx.fillStyle = revealGradient
     ctx.fillRect(playerCenterX - baseRadius, playerCenterY - baseRadius, baseRadius * 2, baseRadius * 2)
@@ -1355,8 +1355,8 @@ export function GameRenderer({ level, player, glitchIntensity, showVHSEffect, va
       baseRadius * 1.28
     )
     edgeGradient.addColorStop(0, 'rgba(0, 0, 0, 0)')
-    edgeGradient.addColorStop(0.72, 'rgba(0, 0, 0, 0.18)')
-    edgeGradient.addColorStop(1, 'rgba(0, 0, 0, 0.64)')
+    edgeGradient.addColorStop(0.72, 'rgba(0, 0, 0, 0.12)')
+    edgeGradient.addColorStop(1, 'rgba(0, 0, 0, 0.46)')
     ctx.fillStyle = edgeGradient
     ctx.fillRect(0, 0, level.width, level.height)
   }, [drawLight, getBrokenFlashlightIntensity, getFlashlightOrigin])
