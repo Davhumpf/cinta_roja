@@ -1562,12 +1562,20 @@ export function GameRenderer({ level, player, glitchIntensity, showVHSEffect, va
       drawFogOfWar(ctx, player, level, frame, emergencyReveal.isActive)
 
       // Post-processing
-      drawSceneColorGrade(ctx, level.width, level.height, frame, emergencyReveal.isActive)
+      if (level.id === 5) {
+        ctx.save()
+        ctx.globalCompositeOperation = 'screen'
+        ctx.fillStyle = 'rgba(96, 125, 160, 0.18)'
+        ctx.fillRect(0, 0, level.width, level.height)
+        ctx.restore()
+      } else {
+        drawSceneColorGrade(ctx, level.width, level.height, frame, emergencyReveal.isActive)
+      }
       drawSanityDistortion(ctx, level.width, level.height, player.sanity, frame)
-      drawVignette(ctx, level.width, level.height, 0.42 + clamp((80 - player.sanity) / 80, 0, 1) * 0.2)
-      drawNoise(ctx, level.width, level.height, 0.055 + clamp((70 - player.sanity) / 70, 0, 1) * 0.1, frame)
+      drawVignette(ctx, level.width, level.height, level.id === 5 ? 0.14 : 0.42 + clamp((80 - player.sanity) / 80, 0, 1) * 0.2)
+      drawNoise(ctx, level.width, level.height, level.id === 5 ? 0.02 : 0.055 + clamp((70 - player.sanity) / 70, 0, 1) * 0.1, frame)
 
-      if (showVHSEffect) {
+      if (showVHSEffect && level.id !== 5) {
         drawVHSEffect(ctx, level.width, level.height, glitchIntensity, frame)
       }
 
