@@ -12,6 +12,7 @@ export function CintaRojaGame() {
     screen,
     currentLevel,
     startGame,
+    restartLevel,
     togglePause,
     toggleInventory,
     advanceDialogue,
@@ -123,7 +124,7 @@ export function CintaRojaGame() {
       {/* Game Over Screen */}
       {gameState.isGameOver && (
         <GameOverScreen
-          onRetry={startGame}
+          onRetry={restartLevel}
           currentLevel={gameState.currentLevel + 1}
         />
       )}

@@ -1092,7 +1092,7 @@ export function useGameEngine() {
         case ' ':
           if (screen === 'title') {
             startGame()
-          } else if (screen === 'gameover') {
+          } else if (screen === 'gameover' || gameState.isGameOver) {
             restartLevel()
           } else if (screen === 'victory') {
             setScreen('title')
@@ -1157,7 +1157,7 @@ export function useGameEngine() {
       window.removeEventListener('keydown', handleKeyDown)
       window.removeEventListener('keyup', handleKeyUp)
     }
-  }, [screen, startGame, restartLevel, advanceDialogue, interact, togglePause, toggleInventory, activeValve, submitValves])
+  }, [screen, gameState.isGameOver, startGame, restartLevel, advanceDialogue, interact, togglePause, toggleInventory, activeValve, submitValves])
 
   // Get current dialogue
   const getCurrentDialogue = useCallback((): Dialogue | null => {
