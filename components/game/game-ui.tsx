@@ -1,7 +1,30 @@
 'use client'
 
-import type { Player, Level, Dialogue } from '@/lib/game-types'
-import { useEffect, useState } from 'react'
+import type { Dialogue, Level, Player } from '@/lib/game-types'
+import {
+  Activity,
+  Archive,
+  Battery,
+  Brain,
+  ClipboardList,
+  Eye,
+  FileText,
+  Gauge,
+  HeartPulse,
+  KeyRound,
+  Lock,
+  Minus,
+  Package,
+  Plus,
+  Radio,
+  Shield,
+  TriangleAlert,
+  X,
+  Zap,
+} from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
+import type { ReactNode } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 
 interface GameUIProps {
   player: Player
@@ -21,6 +44,48 @@ interface GameUIProps {
   valveValues?: Record<string, number>
   onValveChange?: (valveId: string, value: number) => void
   onSubmitValves?: () => void
+}
+
+type HudTone = 'red' | 'cyan' | 'amber' | 'green'
+type Puzzle = Level['puzzles'][number]
+type InventoryType = Player['inventory'][number]['type']
+
+type StatusStat = {
+  label: 'HP' | 'SAN' | 'STM'
+  name: string
+  value: number
+  color: string
+  darkColor: string
+  Icon: LucideIcon
+}
+
+const cx = (...classes: Array<string | false | null | undefined>) => classes.filter(Boolean).join(' ')
+
+const toneStyles: Record<HudTone, { accent: string; border: string; glow: string; rail: string }> = {
+  red: {
+    accent: 'text-red-400',
+    border: 'border-red-500/30',
+    glow: 'shadow-[0_0_26px_rgba(127,29,29,0.24)]',
+    rail: 'from-red-500/70',
+  },
+  cyan: {
+    accent: 'text-cyan-300',
+    border: 'border-cyan-400/30',
+    glow: 'shadow-[0_0_26px_rgba(8,145,178,0.22)]',
+    rail: 'from-cyan-400/70',
+  },
+  amber: {
+    accent: 'text-amber-300',
+    border: 'border-amber-400/30',
+    glow: 'shadow-[0_0_22px_rgba(180,83,9,0.18)]',
+    rail: 'from-amber-400/70',
+  },
+  green: {
+    accent: 'text-emerald-300',
+    border: 'border-emerald-400/30',
+    glow: 'shadow-[0_0_22px_rgba(5,150,105,0.18)]',
+    rail: 'from-emerald-400/70',
+  },
 }
 
 export function GameUI({ 
@@ -44,377 +109,637 @@ export function GameUI({
 }: GameUIProps) {
   const [typedText, setTypedText] = useState('')
   const [isTyping, setIsTyping] = useState(false)
+  const [clock, setClock] = useState(0)
 
   const isStealthLevel = level.hidingSpots.length > 0
   const isDarkLevel = Boolean(level.isDark && !level.lightsOn)
   const puzzle = level.puzzles[0]
 
+  useEffect(() => {
+    setClock(Date.now())
+    const interval = window.setInterval(() => setClock(Date.now()), 250)
+    return () => window.clearInterval(interval)
+  }, [])
+
   // Typewriter effect for dialogue
   useEffect(() => {
-    if (currentDialogue) {
-      setIsTyping(true)
+    if (!currentDialogue) {
       setTypedText('')
-      let index = 0
-      const text = currentDialogue.text
-      
-      const interval = setInterval(() => {
-        if (index < text.length) {
-          setTypedText(text.slice(0, index + 1))
-          index++
-        } else {
-          setIsTyping(false)
-          clearInterval(interval)
-        }
-      }, 30)
-      
-      return () => clearInterval(interval)
+      setIsTyping(false)
+      return
     }
+
+    setIsTyping(true)
+    setTypedText('')
+    let index = 0
+    const text = currentDialogue.text
+    
+    const interval = window.setInterval(() => {
+      if (index < text.length) {
+        setTypedText(text.slice(0, index + 1))
+        index++
+      } else {
+        setIsTyping(false)
+        window.clearInterval(interval)
+      }
+    }, 24)
+    
+    return () => window.clearInterval(interval)
   }, [currentDialogue])
 
-  const statCards = [
+  const statCards = useMemo<StatusStat[]>(() => [
     {
       label: 'HP',
+      name: 'Salud',
       value: player.health,
       color: '#ef4444',
-      glowClass: 'text-glow-red',
+      darkColor: '#5b0d12',
+      Icon: HeartPulse,
     },
     {
       label: 'SAN',
+      name: 'Cordura',
       value: player.sanity,
-      color: '#a855f7',
-      glowClass: 'text-glow-purple',
+      color: '#22d3ee',
+      darkColor: '#083344',
+      Icon: Brain,
     },
     {
       label: 'STM',
+      name: 'Stamina',
       value: player.stamina,
-      color: '#eab308',
-      glowClass: 'text-glow-yellow',
+      color: '#f59e0b',
+      darkColor: '#451a03',
+      Icon: Battery,
     },
-  ]
+  ], [player.health, player.sanity, player.stamina])
+
+  const systemTime = clock ? new Date(clock).toISOString().slice(11, 19) : '--:--:--'
+  const cycleCode = `0x${(level.id * 409 + Math.floor((clock || 1) / 1000)).toString(16).slice(-4).toUpperCase()}`
+  const signalBars = [0, 1, 2, 3].map((i) => 34 + (Math.sin((clock || 0) / 420 + i * 1.7) + 1) * 28)
 
   return (
-    <div className="absolute inset-0 pointer-events-none font-mono overflow-hidden">
-      {/* HUD - Top Bar: System ID & Status */}
-      <div className="absolute top-0 left-0 right-0 h-10 bg-gradient-to-b from-black/80 to-transparent flex items-center px-6 justify-between border-b border-red-900/20 z-10">
-        <div className="flex items-center gap-4">
-          <div className="flex items-center gap-2">
-            <div className="w-2 h-2 bg-red-600 rounded-full animate-pulse shadow-[0_0_8px_#ef4444]" />
-            <div className="text-red-600 text-[10px] font-bold tracking-[0.4em]">SYSTEM_REC</div>
-          </div>
-          <div className="h-3 w-[1px] bg-red-900/40" />
-          <div className="text-gray-500 text-[9px] tracking-widest uppercase flex gap-2">
-            <span>Kernel_v8.4.1</span>
-            <span className="opacity-30">|</span>
-            <span className="animate-pulse">{Math.random().toString(16).slice(2, 8).toUpperCase()}</span>
-          </div>
-        </div>
-        
-        <div className="flex items-center gap-6">
-          <div className="flex flex-col items-end">
-            <div className="text-gray-400 text-[10px] font-bold tracking-widest">00:{Math.floor(Date.now() / 60000 % 60).toString().padStart(2, '0')}:{Math.floor(Date.now() / 1000 % 60).toString().padStart(2, '0')}:{(Date.now() % 100).toString().padStart(2, '0')}</div>
-            <div className="text-[7px] text-red-900 tracking-tighter uppercase font-bold">session_time_sync</div>
-          </div>
-          <div className="h-4 w-[1px] bg-red-900/20" />
-          <div className="flex gap-1">
-             {[...Array(4)].map((_, i) => (
-               <div key={i} className="w-1.5 h-3 bg-red-950/40 flex flex-col justify-end">
-                 <div className="bg-red-600/60 w-full" style={{ height: `${20 + Math.random() * 80}%` }} />
-               </div>
-             ))}
-          </div>
-        </div>
-      </div>
-
-      {/* HUD - Left Sidebar: Mission & Core Stats */}
-      <div className="absolute top-16 left-6 flex flex-col gap-4 pointer-events-auto w-[240px]">
-        {/* Mission Info Card */}
-        <div className="glass-panel p-4 relative box-glow-red overflow-hidden border-l-2 border-red-600/50">
-          <CornerBrackets />
-          <div className="flex items-center justify-between mb-3">
-            <div className="text-red-500 text-[9px] tracking-[0.2em] font-bold uppercase">Mission_Log</div>
-            <div className="text-red-900 text-[8px]">0x42A</div>
-          </div>
-          
-          <h2 className="text-gray-100 text-xs font-bold tracking-tight mb-1 uppercase">{level.name}</h2>
-          <p className="text-gray-400 text-[9px] leading-relaxed uppercase tracking-wider">
-            {level.objective}
-          </p>
-
-          <div className="mt-4 pt-3 border-t border-red-900/20 flex flex-col gap-2">
-            {statCards.map((stat) => (
-              <StatRow 
-                key={stat.label} 
-                label={stat.label} 
-                value={stat.value} 
-                color={stat.color} 
-              />
-            ))}
-          </div>
-        </div>
-
-        {/* Inventory Brief Card */}
-        <div className="glass-panel p-3 relative border-l-2 border-amber-600/30">
-          <div className="text-amber-500 text-[8px] tracking-[0.3em] font-bold uppercase mb-2">Local_Buffer</div>
-          <div className="flex items-center justify-between">
-             <div className="flex items-end gap-1.5">
-               <span className="text-xl font-bold text-gray-200">{player.tapes.toString().padStart(2, '0')}</span>
-               <span className="text-[9px] text-gray-600 mb-1">VHS</span>
-             </div>
-             <div className="h-6 w-[1px] bg-gray-800" />
-             <div className="flex items-end gap-1.5">
-               <span className="text-xl font-bold text-gray-200">{player.inventory.length.toString().padStart(2, '0')}</span>
-               <span className="text-[9px] text-gray-600 mb-1">OBJ</span>
-             </div>
-          </div>
-        </div>
-      </div>
-
-      {/* HUD - Bottom Right: Dynamic Analysis Panel */}
-      <div className="absolute bottom-6 right-6 w-[280px] pointer-events-auto">
-        <div className="glass-panel p-4 relative box-glow-cyan border-r-2 border-cyan-600/50">
-          <CornerBrackets color="rgba(8, 145, 178, 0.4)" />
-          {puzzle && !puzzle.isSolved ? (
-            <>
-              <div className="flex items-center justify-between mb-3">
-                <div className="text-cyan-400 text-[9px] tracking-[0.3em] font-bold uppercase">Signal_Analysis</div>
-                <div className="flex gap-1">
-                  <div className="w-1 h-1 bg-cyan-500 animate-ping" />
-                  <div className="w-1 h-1 bg-cyan-900" />
-                </div>
-              </div>
-              
-              <div className="text-gray-100 text-xs font-bold mb-1 uppercase tracking-wider">{puzzle.name}</div>
-              <div className="text-gray-400 text-[9px] leading-tight mb-4 italic uppercase tracking-tighter">{puzzle.hint}</div>
-              
-              {(puzzle.type === 'sequence' || puzzle.type === 'memory') && (
-                <div className="grid grid-cols-5 gap-1.5">
-                  {(puzzle.sequenceSwitches || puzzle.memorySequence || []).map((_, i) => (
-                    <div
-                      key={i}
-                      className={`h-1 transition-all duration-500 ${
-                        i < (puzzle.currentSequenceIndex || 0)
-                          ? 'bg-cyan-400 shadow-[0_0_8px_rgba(34,211,238,0.8)]'
-                          : 'bg-gray-900'
-                      }`}
-                    />
-                  ))}
-                </div>
-              )}
-            </>
-          ) : (
-            <div className="py-6 flex flex-col items-center justify-center gap-2">
-              <div className="text-[8px] text-gray-700 tracking-[0.6em] animate-pulse uppercase">standby_monitor</div>
-              <div className="flex gap-0.5">
-                {[...Array(12)].map((_, i) => (
-                  <div key={i} className="w-1 h-2 bg-gray-900" style={{ height: `${2 + Math.sin(i + Date.now() * 0.01) * 4}px` }} />
-                ))}
-              </div>
+    <div className="absolute inset-0 pointer-events-none overflow-hidden font-mono text-slate-100">
+      <div className="absolute inset-x-0 top-0 z-20 px-3 pt-3 sm:px-5">
+        <div className="mx-auto flex h-11 max-w-[1280px] items-center justify-between border border-red-500/15 bg-black/70 px-3 shadow-[0_12px_36px_rgba(0,0,0,0.42)] backdrop-blur-md sm:px-4">
+          <div className="flex min-w-0 items-center gap-3">
+            <div className="flex items-center gap-2 text-red-400">
+              <span className="h-2 w-2 animate-pulse rounded-full bg-red-500 shadow-[0_0_12px_rgba(239,68,68,0.9)]" />
+              <Radio className="h-3.5 w-3.5" />
+              <span className="text-[10px] font-bold tracking-[0.34em]">SYSTEM_REC</span>
             </div>
-          )}
-        </div>
-        
-        {/* Detection Level - Re-integrated */}
-        {isStealthLevel && (
-          <div className="mt-4 glass-panel p-3 border-r-2 border-red-900/30">
-            <div className="flex justify-between items-center">
-              <span className="text-[8px] text-red-500/50 tracking-widest uppercase font-bold">prox_alert:</span>
-              <div className="flex gap-1.5">
-                {[0, 1, 2, 3, 4].map(i => (
-                  <div 
-                    key={i}
-                    className={`h-2.5 w-1.5 transition-all duration-300 ${
-                      i < (detectionCount * 1.5)
-                        ? 'bg-red-500 shadow-[0_0_8px_#ef4444] animate-pulse' 
-                        : 'bg-red-950/20'
-                    }`}
+            <div className="hidden h-4 w-px bg-red-500/20 sm:block" />
+            <div className="hidden min-w-0 items-center gap-2 text-[9px] uppercase tracking-[0.18em] text-slate-500 sm:flex">
+              <span className="truncate">Kernel v8.4.1</span>
+              <span className={cx('font-bold', isDarkLevel ? 'text-red-300' : 'text-cyan-300')}>
+                {isDarkLevel ? 'DARK' : 'SYNC'}
+              </span>
+              <span>{cycleCode}</span>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3">
+            <div className="hidden items-end gap-1 sm:flex">
+              {signalBars.map((height, index) => (
+                <span key={index} className="flex h-4 w-1 items-end bg-red-950/60">
+                  <span
+                    className="w-full bg-red-400/70 shadow-[0_0_8px_rgba(248,113,113,0.55)] transition-[height] duration-300"
+                    style={{ height: `${height}%` }}
                   />
-                ))}
-              </div>
+                </span>
+              ))}
+            </div>
+            <div className="text-right">
+              <div className="text-[11px] font-bold tracking-[0.18em] text-slate-200">{systemTime}</div>
+              <div className="text-[8px] uppercase tracking-[0.26em] text-red-500/50">session sync</div>
             </div>
           </div>
-        )}
+        </div>
       </div>
 
-      {/* Dialogue box - Redesigned */}
+      <div className="absolute left-3 top-16 z-10 flex w-[calc(100vw-1.5rem)] flex-col gap-3 pointer-events-auto sm:left-5 sm:w-[21rem] lg:left-6">
+        <MissionPanel level={level} totalTapes={totalTapes} memoriesCount={memoriesCount} />
+        <StatusPanel stats={statCards} />
+      </div>
+
+      <div className="absolute bottom-20 right-3 z-10 w-[calc(100vw-1.5rem)] pointer-events-auto sm:bottom-5 sm:right-5 sm:w-[22rem] lg:right-6">
+        <ObjectivePanel puzzle={puzzle} isDarkLevel={isDarkLevel} />
+        {isStealthLevel && <DetectionPanel detectionCount={detectionCount} />}
+      </div>
+
       {currentDialogue && (
-        <div 
-          className="absolute bottom-32 left-1/2 -translate-x-1/2 w-[700px] max-w-[90vw] pointer-events-auto"
-          onClick={() => {
-            if (!isTyping && !currentDialogue.choices) {
-              onAdvanceDialogue()
-            } else if (isTyping) {
-              setTypedText(currentDialogue.text)
-              setIsTyping(false)
-            }
+        <DialoguePanel
+          currentDialogue={currentDialogue}
+          typedText={typedText}
+          isTyping={isTyping}
+          onAdvanceDialogue={onAdvanceDialogue}
+          onSelectChoice={onSelectChoice}
+          onSkipTyping={() => {
+            setTypedText(currentDialogue.text)
+            setIsTyping(false)
           }}
-        >
-          <div className="glass-panel p-6 box-glow-red relative border-l-4 border-red-600">
-            <div className="absolute -top-3 left-6 bg-red-600 px-3 py-0.5 text-white text-[10px] font-bold tracking-[0.3em] uppercase shadow-lg">
-              {currentDialogue.speaker}
-            </div>
-            
-            <div className="text-gray-100 text-lg leading-relaxed min-h-[50px] font-mono">
-              {typedText}
-              {isTyping && <span className="w-2 h-5 bg-red-500 inline-block align-middle ml-1 animate-pulse" />}
-            </div>
-            
-            {!isTyping && currentDialogue.choices && (
-              <div className="mt-6 grid grid-cols-1 gap-2">
-                {currentDialogue.choices.map((choice, index) => (
-                  <button
-                    key={index}
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      onSelectChoice?.(index)
-                    }}
-                    className="w-full text-left px-4 py-2.5 bg-red-950/20 border border-red-900/50 text-gray-300 hover:bg-red-900/40 hover:text-white hover:border-red-500 transition-all group"
-                  >
-                    <span className="text-red-500 mr-2 group-hover:animate-pulse">▶</span>
-                    <span className="text-sm font-bold tracking-wide">{choice.text}</span>
-                  </button>
-                ))}
-              </div>
-            )}
-            
-            {!isTyping && !currentDialogue.choices && (
-              <div className="text-right text-[10px] text-red-500/60 mt-4 tracking-[0.2em] animate-pulse uppercase">
-                click_to_continue
-              </div>
-            )}
-          </div>
-        </div>
+        />
       )}
 
-      {/* Interaction Overlays (Modals) */}
       {(showKeypad || activeValve || showInventory) && (
-        <div className="absolute inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center pointer-events-auto z-50">
-          <div className="relative p-8 glass-panel min-w-[400px] box-glow-red">
-            <CornerBrackets />
-            
-            {showKeypad && (
-              <div className="space-y-6">
-                <div className="text-red-500 text-center tracking-[0.4em] font-bold uppercase">keypad_entry</div>
-                <div className="bg-black/60 border-2 border-red-900/50 p-6 text-center">
-                  <div className="text-4xl tracking-[1em] text-red-100 font-bold ml-[1em]">
-                    {codeInput.padEnd(4, '_')}
-                  </div>
-                </div>
-                <div className="grid grid-cols-3 gap-3 max-w-[300px] mx-auto">
-                  {[1, 2, 3, 4, 5, 6, 7, 8, 9, 'C', 0, 'OK'].map((key) => (
-                    <button
-                      key={key}
-                      className="h-14 bg-red-950/20 border border-red-900/40 text-red-200 text-xl font-bold hover:bg-red-900/40 hover:border-red-500 transition-all"
-                      onClick={() => {
-                        if (key === 'OK' && codeInput.length === 4) onSubmitCode?.(codeInput)
-                      }}
-                    >
-                      {key}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {activeValve && (
-              <div className="space-y-8">
-                <div className="text-cyan-400 text-center tracking-[0.4em] font-bold uppercase">valve_control_system</div>
-                <div className="flex justify-center gap-8">
-                  {level.switches.filter(s => s.type === 'valve').map((valve, index) => (
-                    <div key={valve.id} className="text-center group">
-                      <div className="text-[10px] text-gray-500 mb-4 tracking-widest uppercase">vlv_{index + 1}</div>
-                      <div className="w-24 h-24 rounded-full border-4 border-cyan-900/50 flex items-center justify-center bg-black/60 relative group-hover:border-cyan-500 transition-all duration-500">
-                        <div className="absolute inset-2 border border-cyan-900/20 rounded-full animate-spin-slow" />
-                        <span className="text-4xl font-bold text-cyan-400 text-glow-cyan">{valveValues[valve.id] ?? 0}</span>
-                      </div>
-                      <div className="flex gap-2 mt-6">
-                        <button onClick={() => onValveChange?.(valve.id, ((valveValues[valve.id] ?? 0) + 9) % 10)} className="flex-1 h-10 bg-cyan-950/20 border border-cyan-900/40 text-cyan-400 hover:bg-cyan-900/40 hover:border-cyan-500">-</button>
-                        <button onClick={() => onValveChange?.(valve.id, ((valveValues[valve.id] ?? 0) + 1) % 10)} className="flex-1 h-10 bg-cyan-950/20 border border-cyan-900/40 text-cyan-400 hover:bg-cyan-900/40 hover:border-cyan-500">+</button>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-                <button onClick={onSubmitValves} className="w-full h-14 bg-cyan-900/40 border-2 border-cyan-500 text-cyan-100 font-bold tracking-[0.3em] hover:bg-cyan-800/60 transition-all uppercase mt-4">execute_sequence</button>
-              </div>
-            )}
-
-            {showInventory && (
-              <div className="space-y-6">
-                <div className="text-amber-500 text-center tracking-[0.4em] font-bold uppercase">inventory_manifest</div>
-                <div className="space-y-2 max-h-[400px] overflow-y-auto pr-2 custom-scrollbar">
-                  {player.inventory.length === 0 ? (
-                    <div className="text-gray-600 text-center py-12 text-[10px] tracking-widest uppercase">null_storage_content</div>
-                  ) : (
-                    player.inventory.map((item) => (
-                      <div key={item.id} className="flex items-center gap-4 p-4 bg-gray-950/50 border border-gray-800 hover:border-amber-900/50 transition-all group">
-                        <div className="text-3xl opacity-50 group-hover:opacity-100 transition-opacity">
-                          {item.type === 'key' ? '🔑' : item.type === 'fuse' ? '🔌' : item.type === 'document' ? '📄' : '📼'}
-                        </div>
-                        <div className="flex-1">
-                          <div className="text-gray-200 text-sm font-bold uppercase tracking-tight">{item.name}</div>
-                          <div className="text-gray-500 text-[10px] leading-none mt-1 uppercase tracking-tighter">{item.description}</div>
-                        </div>
-                        <div className="text-[8px] text-gray-700 font-bold uppercase">id: {item.id.slice(0, 4)}</div>
-                      </div>
-                    ))
-                  )}
-                </div>
-                <button onClick={onCloseInventory} className="w-full h-12 bg-gray-900 border border-gray-700 text-gray-400 hover:text-white hover:border-gray-500 transition-all font-bold tracking-[0.2em] uppercase">close_manifest</button>
-              </div>
-            )}
-          </div>
-        </div>
+        <InteractionOverlay
+          player={player}
+          level={level}
+          codeInput={codeInput}
+          showKeypad={showKeypad}
+          onSubmitCode={onSubmitCode}
+          showInventory={showInventory}
+          onCloseInventory={onCloseInventory}
+          activeValve={activeValve}
+          valveValues={valveValues}
+          onValveChange={onValveChange}
+          onSubmitValves={onSubmitValves}
+        />
       )}
 
-      {/* Status Warning Effects */}
       {player.sanity < 30 && (
-        <div className="absolute inset-0 pointer-events-none flex items-center justify-center">
-          <div className="text-red-600 text-4xl font-bold opacity-20 animate-glitch text-glow-red uppercase tracking-[0.5em]">no_escape_from_the_cycle</div>
+        <div className="absolute inset-x-4 top-1/2 pointer-events-none z-30 flex -translate-y-1/2 justify-center">
+          <div className="max-w-[92vw] animate-glitch border border-red-500/20 bg-black/20 px-4 py-2 text-center text-xl font-black uppercase tracking-[0.35em] text-red-500/25 text-glow-red sm:text-4xl">
+            signal fracture
+          </div>
         </div>
       )}
 
       {player.health < 30 && (
-        <div className="absolute inset-0 pointer-events-none box-glow-red animate-pulse" />
+        <div className="absolute inset-0 pointer-events-none z-20 animate-pulse border border-red-500/10 shadow-[inset_0_0_120px_rgba(127,29,29,0.34)]" />
       )}
       
       {player.isHiding && (
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 bg-green-950/40 backdrop-blur-sm border-2 border-green-500/50 px-6 py-2 animate-pulse flex items-center gap-3">
-          <div className="w-2 h-2 bg-green-500 rounded-full" />
-          <span className="text-green-400 font-bold tracking-[0.4em] text-xs uppercase">hidden_state_active</span>
+        <div className="absolute left-1/2 top-1/2 z-30 flex -translate-x-1/2 -translate-y-1/2 items-center gap-3 border border-emerald-400/30 bg-black/70 px-5 py-2 text-emerald-300 shadow-[0_0_24px_rgba(16,185,129,0.22)] backdrop-blur-md">
+          <Shield className="h-4 w-4" />
+          <span className="text-[11px] font-bold uppercase tracking-[0.3em]">hidden state</span>
         </div>
       )}
     </div>
   )
 }
 
-function CornerBrackets({ color = 'rgba(239, 68, 68, 0.4)' }: { color?: string }) {
+function TerminalPanel({
+  title,
+  code,
+  tone = 'red',
+  Icon,
+  className,
+  children,
+}: {
+  title: string
+  code?: string
+  tone?: HudTone
+  Icon?: LucideIcon
+  className?: string
+  children: ReactNode
+}) {
+  const toneClass = toneStyles[tone]
+
   return (
-    <>
-      <div className="absolute top-0 left-0 w-4 h-4 border-t-2 border-l-2" style={{ borderColor: color }} />
-      <div className="absolute top-0 right-0 w-4 h-4 border-t-2 border-r-2" style={{ borderColor: color }} />
-      <div className="absolute bottom-0 left-0 w-4 h-4 border-b-2 border-l-2" style={{ borderColor: color }} />
-      <div className="absolute bottom-0 right-0 w-4 h-4 border-b-2 border-r-2" style={{ borderColor: color }} />
-    </>
+    <section
+      className={cx(
+        'relative overflow-hidden border bg-black/75 p-3 backdrop-blur-md',
+        'before:absolute before:inset-0 before:pointer-events-none before:bg-[linear-gradient(rgba(255,255,255,0.035)_1px,transparent_1px)] before:bg-[length:100%_4px] before:opacity-25',
+        toneClass.border,
+        toneClass.glow,
+        className,
+      )}
+    >
+      <CornerBrackets tone={tone} />
+      <div className="relative mb-3 flex items-center justify-between gap-3 border-b border-white/10 pb-2">
+        <div className={cx('flex min-w-0 items-center gap-2', toneClass.accent)}>
+          {Icon && <Icon className="h-3.5 w-3.5 shrink-0" />}
+          <span className="truncate text-[10px] font-bold uppercase tracking-[0.28em]">{title}</span>
+        </div>
+        {code && <span className="shrink-0 text-[8px] uppercase tracking-[0.2em] text-slate-500">{code}</span>}
+      </div>
+      <div className="relative">{children}</div>
+    </section>
   )
 }
 
-function StatRow({ label, value, color }: { label: string; value: number; color: string }) {
-  const safeValue = Math.max(0, Math.min(100, value))
+function MissionPanel({ level, totalTapes, memoriesCount }: { level: Level; totalTapes: number; memoriesCount: number }) {
   return (
-    <div className="flex flex-col gap-1">
-      <div className="flex justify-between items-center">
-        <span className="text-[8px] font-bold tracking-[0.1em] opacity-80" style={{ color }}>{label}</span>
-        <span className="text-[8px] text-gray-500 font-bold">{Math.round(safeValue)}%</span>
+    <TerminalPanel title="Mission log" code={`LVL-${String(level.id).padStart(2, '0')}`} tone="red" Icon={ClipboardList}>
+      <div className="flex items-start gap-3">
+        <span className="mt-1 h-2 w-2 shrink-0 bg-red-400 shadow-[0_0_12px_rgba(248,113,113,0.8)]" />
+        <div className="min-w-0">
+          <h2 className="truncate text-sm font-black uppercase tracking-[0.12em] text-slate-100">{level.name}</h2>
+          <p
+            className="mt-2 text-[10px] leading-5 text-slate-400"
+            style={{
+              display: '-webkit-box',
+              WebkitLineClamp: 4,
+              WebkitBoxOrient: 'vertical',
+              overflow: 'hidden',
+            }}
+          >
+            {level.objective}
+          </p>
+        </div>
       </div>
-      <div className="h-1 bg-black/40 rounded-full overflow-hidden border border-white/5">
-        <div 
-          className="h-full transition-all duration-700 ease-out"
-          style={{ 
-            width: `${safeValue}%`, 
-            backgroundColor: color,
-            boxShadow: `0 0 8px ${color}66`
+
+      <div className="mt-4 grid grid-cols-3 gap-2 border-t border-red-500/10 pt-3">
+        <MiniMetric label="VHS" value={String(totalTapes).padStart(2, '0')} Icon={Archive} tone="red" />
+        <MiniMetric label="MEM" value={String(memoriesCount).padStart(2, '0')} Icon={Eye} tone="cyan" />
+        <MiniMetric label="REQ" value={String(level.requiredTapes).padStart(2, '0')} Icon={Lock} tone="amber" />
+      </div>
+    </TerminalPanel>
+  )
+}
+
+function StatusPanel({ stats }: { stats: StatusStat[] }) {
+  return (
+    <TerminalPanel title="Vitals" code="BIO-MON" tone="cyan" Icon={Activity} className="max-sm:p-2.5">
+      <div className="space-y-3">
+        {stats.map((stat) => (
+          <StatusBar key={stat.label} stat={stat} />
+        ))}
+      </div>
+    </TerminalPanel>
+  )
+}
+
+function StatusBar({ stat }: { stat: StatusStat }) {
+  const safeValue = Math.max(0, Math.min(100, stat.value))
+  const critical = safeValue <= 28
+  const warning = safeValue <= 50
+  const Icon = stat.Icon
+
+  return (
+    <div className={cx('group', critical && 'animate-pulse')}>
+      <div className="mb-1.5 flex items-center justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-2">
+          <Icon className="h-3.5 w-3.5 shrink-0" style={{ color: stat.color }} />
+          <span className="text-[10px] font-black tracking-[0.22em]" style={{ color: stat.color }}>
+            {stat.label}
+          </span>
+          <span className="truncate text-[9px] uppercase tracking-[0.16em] text-slate-500">{stat.name}</span>
+        </div>
+        <span className={cx('text-[10px] font-bold tabular-nums', critical ? 'text-red-200' : warning ? 'text-amber-200' : 'text-slate-300')}>
+          {Math.round(safeValue)}%
+        </span>
+      </div>
+
+      <div className="relative h-2 overflow-hidden border border-white/10 bg-black/60">
+        <div
+          className="absolute inset-y-0 left-0 transition-[width] duration-700 ease-out"
+          style={{
+            width: `${safeValue}%`,
+            background: `linear-gradient(90deg, ${stat.darkColor}, ${stat.color})`,
+            boxShadow: critical ? `0 0 16px ${stat.color}` : `0 0 9px ${stat.color}66`,
+          }}
+        />
+        <div
+          className="absolute inset-0 opacity-25"
+          style={{
+            backgroundImage: 'repeating-linear-gradient(90deg, transparent 0, transparent 7px, rgba(255,255,255,0.35) 8px)',
           }}
         />
       </div>
     </div>
   )
+}
+
+function ObjectivePanel({ puzzle, isDarkLevel }: { puzzle?: Puzzle; isDarkLevel: boolean }) {
+  if (!puzzle || puzzle.isSolved) {
+    return (
+      <TerminalPanel title="Signal analysis" code={isDarkLevel ? 'LIGHT LOST' : 'STANDBY'} tone="cyan" Icon={Gauge}>
+        <div className="flex items-center justify-between gap-4 py-2">
+          <div>
+            <div className="text-xs font-bold uppercase tracking-[0.2em] text-slate-300">
+              {isDarkLevel ? 'Emergency scan' : 'No active puzzle'}
+            </div>
+            <div className="mt-1 text-[9px] uppercase tracking-[0.18em] text-slate-600">
+              {isDarkLevel ? 'visibility degraded' : 'monitoring local signals'}
+            </div>
+          </div>
+          <Activity className={cx('h-5 w-5', isDarkLevel ? 'text-red-400' : 'text-cyan-300')} />
+        </div>
+      </TerminalPanel>
+    )
+  }
+
+  const progress = getPuzzleProgress(puzzle)
+
+  return (
+    <TerminalPanel title="Objectives" code={puzzle.type} tone="cyan" Icon={FileText}>
+      <div className="space-y-3">
+        <div>
+          <div className="flex items-center gap-2">
+            <span className="h-1.5 w-1.5 bg-cyan-300 shadow-[0_0_10px_rgba(103,232,249,0.8)]" />
+            <h3 className="truncate text-sm font-black uppercase tracking-[0.12em] text-slate-100">{puzzle.name}</h3>
+          </div>
+          <p className="mt-2 text-[10px] leading-5 text-slate-400">{puzzle.hint}</p>
+        </div>
+
+        {progress.total > 0 && (
+          <div className="border-t border-cyan-400/10 pt-3">
+            <div className="mb-2 flex justify-between text-[9px] uppercase tracking-[0.18em] text-slate-500">
+              <span>Progress</span>
+              <span>{progress.current}/{progress.total}</span>
+            </div>
+            <div className="grid gap-1.5" style={{ gridTemplateColumns: `repeat(${progress.total}, minmax(0, 1fr))` }}>
+              {Array.from({ length: progress.total }).map((_, index) => (
+                <span
+                  key={index}
+                  className={cx(
+                    'h-1.5 transition-all duration-500',
+                    index < progress.current
+                      ? 'bg-cyan-300 shadow-[0_0_10px_rgba(103,232,249,0.85)]'
+                      : 'bg-slate-900/90 ring-1 ring-white/5',
+                  )}
+                />
+              ))}
+            </div>
+          </div>
+        )}
+      </div>
+    </TerminalPanel>
+  )
+}
+
+function DetectionPanel({ detectionCount }: { detectionCount: number }) {
+  const alertLevel = Math.max(0, Math.min(5, Math.ceil(detectionCount * 1.5)))
+
+  return (
+    <TerminalPanel title="Proximity" code="STEALTH" tone="red" Icon={TriangleAlert} className="mt-3 p-3">
+      <div className="flex items-center justify-between gap-3">
+        <span className="text-[9px] font-bold uppercase tracking-[0.2em] text-red-300/70">Detection</span>
+        <div className="flex gap-1.5">
+          {Array.from({ length: 5 }).map((_, index) => (
+            <span
+              key={index}
+              className={cx(
+                'h-3 w-1.5 transition-all duration-300',
+                index < alertLevel ? 'bg-red-400 shadow-[0_0_10px_rgba(248,113,113,0.9)]' : 'bg-red-950/40',
+              )}
+            />
+          ))}
+        </div>
+      </div>
+    </TerminalPanel>
+  )
+}
+
+function DialoguePanel({
+  currentDialogue,
+  typedText,
+  isTyping,
+  onAdvanceDialogue,
+  onSelectChoice,
+  onSkipTyping,
+}: {
+  currentDialogue: Dialogue
+  typedText: string
+  isTyping: boolean
+  onAdvanceDialogue: () => void
+  onSelectChoice?: (index: number) => void
+  onSkipTyping: () => void
+}) {
+  return (
+    <div
+      className="absolute bottom-28 left-1/2 z-40 w-[min(44rem,calc(100vw-1.5rem))] -translate-x-1/2 pointer-events-auto sm:bottom-24"
+      onClick={() => {
+        if (isTyping) {
+          onSkipTyping()
+        } else if (!currentDialogue.choices) {
+          onAdvanceDialogue()
+        }
+      }}
+    >
+      <TerminalPanel title={currentDialogue.speaker} code="COMMS" tone="red" Icon={Radio} className="p-4 sm:p-5">
+        <div className="min-h-16 text-sm leading-7 text-slate-100 sm:text-base">
+          {typedText}
+          {isTyping && <span className="ml-1 inline-block h-5 w-2 translate-y-1 bg-red-400 shadow-[0_0_8px_rgba(248,113,113,0.75)]" />}
+        </div>
+
+        {!isTyping && currentDialogue.choices && (
+          <div className="mt-5 grid gap-2">
+            {currentDialogue.choices.map((choice, index) => (
+              <button
+                key={index}
+                onClick={(event) => {
+                  event.stopPropagation()
+                  onSelectChoice?.(index)
+                }}
+                className="group flex w-full items-center gap-3 border border-red-500/25 bg-red-950/15 px-3 py-2.5 text-left text-slate-300 transition-all hover:border-red-400/70 hover:bg-red-900/30 hover:text-white"
+              >
+                <Zap className="h-3.5 w-3.5 shrink-0 text-red-400 transition-transform group-hover:translate-x-0.5" />
+                <span className="text-xs font-bold uppercase tracking-[0.12em]">{choice.text}</span>
+              </button>
+            ))}
+          </div>
+        )}
+
+        {!isTyping && !currentDialogue.choices && (
+          <div className="mt-4 text-right text-[9px] font-bold uppercase tracking-[0.24em] text-red-400/60">
+            continue
+          </div>
+        )}
+      </TerminalPanel>
+    </div>
+  )
+}
+
+function InteractionOverlay({
+  player,
+  level,
+  codeInput,
+  showKeypad,
+  onSubmitCode,
+  showInventory,
+  onCloseInventory,
+  activeValve,
+  valveValues,
+  onValveChange,
+  onSubmitValves,
+}: {
+  player: Player
+  level: Level
+  codeInput: string
+  showKeypad: boolean
+  onSubmitCode?: (code: string) => void
+  showInventory: boolean
+  onCloseInventory?: () => void
+  activeValve?: string | null
+  valveValues: Record<string, number>
+  onValveChange?: (valveId: string, value: number) => void
+  onSubmitValves?: () => void
+}) {
+  return (
+    <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/80 p-4 pointer-events-auto backdrop-blur-sm">
+      <TerminalPanel title={showInventory ? 'Inventory manifest' : activeValve ? 'Valve control' : 'Keypad entry'} code="INPUT" tone={activeValve ? 'cyan' : showInventory ? 'amber' : 'red'} Icon={Package} className="w-[min(34rem,calc(100vw-2rem))] p-5 sm:p-6">
+        {showKeypad && (
+          <div className="space-y-5">
+            <div className="border border-red-500/25 bg-black/60 p-5 text-center">
+              <div className="ml-[0.6em] text-4xl font-black tracking-[0.6em] text-red-100 drop-shadow-[0_0_12px_rgba(248,113,113,0.35)]">
+                {codeInput.padEnd(4, '_')}
+              </div>
+            </div>
+            <div className="mx-auto grid max-w-[18rem] grid-cols-3 gap-2">
+              {[1, 2, 3, 4, 5, 6, 7, 8, 9, 'C', 0, 'OK'].map((key) => (
+                <button
+                  key={key}
+                  className="h-12 border border-red-500/25 bg-red-950/15 text-lg font-black text-red-100 transition-all hover:border-red-400 hover:bg-red-900/30"
+                  onClick={() => {
+                    if (key === 'OK' && codeInput.length === 4) onSubmitCode?.(codeInput)
+                  }}
+                >
+                  {key}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {activeValve && (
+          <div className="space-y-6">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+              {level.switches.filter((switchObj) => switchObj.type === 'valve').map((valve, index) => (
+                <div key={valve.id} className="border border-cyan-400/15 bg-black/40 p-3 text-center">
+                  <div className="mb-3 text-[9px] font-bold uppercase tracking-[0.2em] text-cyan-300/60">vlv_{index + 1}</div>
+                  <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full border-2 border-cyan-400/30 bg-cyan-950/10 shadow-[inset_0_0_18px_rgba(8,145,178,0.18)]">
+                    <span className="text-3xl font-black text-cyan-200 text-glow-cyan">{valveValues[valve.id] ?? 0}</span>
+                  </div>
+                  <div className="mt-4 grid grid-cols-2 gap-2">
+                    <button
+                      onClick={() => onValveChange?.(valve.id, ((valveValues[valve.id] ?? 0) + 9) % 10)}
+                      className="flex h-9 items-center justify-center border border-cyan-400/25 bg-cyan-950/15 text-cyan-200 transition-all hover:border-cyan-300 hover:bg-cyan-900/30"
+                    >
+                      <Minus className="h-4 w-4" />
+                    </button>
+                    <button
+                      onClick={() => onValveChange?.(valve.id, ((valveValues[valve.id] ?? 0) + 1) % 10)}
+                      className="flex h-9 items-center justify-center border border-cyan-400/25 bg-cyan-950/15 text-cyan-200 transition-all hover:border-cyan-300 hover:bg-cyan-900/30"
+                    >
+                      <Plus className="h-4 w-4" />
+                    </button>
+                  </div>
+                </div>
+              ))}
+            </div>
+            <button onClick={onSubmitValves} className="h-12 w-full border border-cyan-300/60 bg-cyan-900/30 text-[11px] font-black uppercase tracking-[0.28em] text-cyan-100 transition-all hover:bg-cyan-800/50">
+              execute sequence
+            </button>
+          </div>
+        )}
+
+        {showInventory && (
+          <div className="space-y-5">
+            <div className="max-h-[min(24rem,55vh)] space-y-2 overflow-y-auto pr-1">
+              {player.inventory.length === 0 ? (
+                <div className="border border-white/10 bg-black/40 py-12 text-center text-[10px] uppercase tracking-[0.24em] text-slate-600">
+                  null storage content
+                </div>
+              ) : (
+                player.inventory.map((item) => (
+                  <div key={item.id} className="flex items-center gap-3 border border-amber-400/10 bg-black/40 p-3 transition-all hover:border-amber-300/40">
+                    <div className="flex h-10 w-10 shrink-0 items-center justify-center border border-amber-400/20 bg-amber-950/15 text-amber-200">
+                      <InventoryIcon type={item.type} />
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="truncate text-sm font-black uppercase tracking-[0.08em] text-slate-100">{item.name}</div>
+                      <div className="mt-1 line-clamp-2 text-[10px] leading-4 text-slate-500">{item.description}</div>
+                    </div>
+                    <span className="hidden text-[8px] font-bold uppercase tracking-[0.18em] text-slate-700 sm:block">id {item.id.slice(0, 4)}</span>
+                  </div>
+                ))
+              )}
+            </div>
+            <button onClick={onCloseInventory} className="flex h-11 w-full items-center justify-center gap-2 border border-slate-600/40 bg-slate-950/60 text-[10px] font-black uppercase tracking-[0.24em] text-slate-300 transition-all hover:border-slate-300/60 hover:text-white">
+              <X className="h-4 w-4" />
+              close manifest
+            </button>
+          </div>
+        )}
+      </TerminalPanel>
+    </div>
+  )
+}
+
+function MiniMetric({ label, value, Icon, tone }: { label: string; value: string; Icon: LucideIcon; tone: HudTone }) {
+  const toneClass = toneStyles[tone]
+
+  return (
+    <div className="min-w-0 border border-white/10 bg-black/40 px-2 py-2">
+      <div className={cx('mb-1 flex items-center gap-1.5', toneClass.accent)}>
+        <Icon className="h-3 w-3 shrink-0" />
+        <span className="text-[8px] font-bold uppercase tracking-[0.18em]">{label}</span>
+      </div>
+      <div className="text-lg font-black leading-none tracking-[0.08em] text-slate-100">{value}</div>
+    </div>
+  )
+}
+
+function CornerBrackets({ tone = 'red' }: { tone?: HudTone }) {
+  const color = tone === 'cyan'
+    ? 'rgba(103, 232, 249, 0.46)'
+    : tone === 'amber'
+      ? 'rgba(251, 191, 36, 0.42)'
+      : tone === 'green'
+        ? 'rgba(110, 231, 183, 0.42)'
+        : 'rgba(248, 113, 113, 0.46)'
+
+  return (
+    <>
+      <div className="absolute left-0 top-0 h-4 w-4 border-l-2 border-t-2" style={{ borderColor: color }} />
+      <div className="absolute right-0 top-0 h-4 w-4 border-r-2 border-t-2" style={{ borderColor: color }} />
+      <div className="absolute bottom-0 left-0 h-4 w-4 border-b-2 border-l-2" style={{ borderColor: color }} />
+      <div className="absolute bottom-0 right-0 h-4 w-4 border-b-2 border-r-2" style={{ borderColor: color }} />
+    </>
+  )
+}
+
+function getPuzzleProgress(puzzle: Puzzle) {
+  if (puzzle.type === 'sequence') {
+    return {
+      current: puzzle.currentSequenceIndex ?? 0,
+      total: puzzle.sequenceSwitches?.length ?? 0,
+    }
+  }
+
+  if (puzzle.type === 'memory') {
+    return {
+      current: puzzle.playerSequence?.length ?? puzzle.currentSequenceIndex ?? 0,
+      total: puzzle.memorySequence?.length ?? 0,
+    }
+  }
+
+  if (puzzle.type === 'pattern') {
+    return {
+      current: puzzle.currentPatternIndex ?? 0,
+      total: puzzle.patternTiles?.length ?? 0,
+    }
+  }
+
+  if (puzzle.type === 'code') {
+    return {
+      current: puzzle.enteredCode?.length ?? 0,
+      total: puzzle.correctCode?.length ?? 4,
+    }
+  }
+
+  if (puzzle.type === 'logic') {
+    return {
+      current: 0,
+      total: puzzle.logicClues?.length ?? 0,
+    }
+  }
+
+  return { current: 0, total: 0 }
+}
+
+function InventoryIcon({ type }: { type: InventoryType }) {
+  const icons: Record<InventoryType, LucideIcon> = {
+    key: KeyRound,
+    fuse: Zap,
+    document: FileText,
+    code_piece: Lock,
+    tool: Gauge,
+    vhs_tape: Archive,
+  }
+  const Icon = icons[type]
+  return <Icon className="h-5 w-5" />
 }

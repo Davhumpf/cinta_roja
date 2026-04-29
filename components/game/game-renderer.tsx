@@ -12,6 +12,25 @@ interface GameRendererProps {
 }
 
 type Rgb = readonly [number, number, number]
+type GlowTone = 'red' | 'cyan' | 'amber' | 'green' | 'white'
+
+type CharacterRenderEntity = {
+  kind: 'player' | 'enemy'
+  enemyType?: Enemy['type']
+  position: Position
+  width: number
+  height: number
+  direction: Player['direction']
+  isMoving: boolean
+  frame: number
+  isSprinting?: boolean
+  isHiding?: boolean
+  sanity?: number
+  health?: number
+  flashlightActive?: boolean
+  behaviorState?: Enemy['behaviorState']
+  stunned?: boolean
+}
 
 const FLOOR_TILE_SIZE = 48
 const BASE_PARTICLE_COUNT = 96
@@ -33,6 +52,21 @@ const tileHash = (tileX: number, tileY: number, salt = 0) => {
 
 const rgba = ([r, g, b]: Rgb, alpha: number) => {
   return `rgba(${r}, ${g}, ${b}, ${clamp(alpha, 0, 1)})`
+}
+
+const getGlowColor = (tone: GlowTone): Rgb => {
+  switch (tone) {
+    case 'red':
+      return RED_LIGHT
+    case 'cyan':
+      return CYAN_LIGHT
+    case 'amber':
+      return [255, 194, 76]
+    case 'green':
+      return [32, 255, 146]
+    default:
+      return [245, 250, 255]
+  }
 }
 
 let globalMaskCanvas: HTMLCanvasElement | null = null;
@@ -107,7 +141,7 @@ export function GameRenderer({ level, player, glitchIntensity, showVHSEffect, va
     }
   }, [])
 
-  const drawEntityShadow = useCallback((ctx: CanvasRenderingContext2D, centerX: number, centerY: number, radiusX: number, radiusY: number, alpha = 0.34) => {
+  const drawShadow = useCallback((ctx: CanvasRenderingContext2D, centerX: number, centerY: number, radiusX = 18, radiusY = 7, alpha = 0.34) => {
     ctx.save()
     ctx.translate(centerX, centerY)
     ctx.scale(radiusX, radiusY)
@@ -122,6 +156,72 @@ export function GameRenderer({ level, player, glitchIntensity, showVHSEffect, va
     ctx.arc(0, 0, 1, 0, Math.PI * 2)
     ctx.fill()
     ctx.restore()
+  }, [])
+
+  const drawOutlinedPixelRect = useCallback((
+    ctx: CanvasRenderingContext2D,
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+    color: string,
+    outline = '#050507',
+  ) => {
+    drawPixelRect(ctx, x - 1, y - 1, width + 2, height + 2, outline)
+    drawPixelRect(ctx, x, y, width, height, color)
+  }, [drawPixelRect])
+
+  const drawEyes = useCallback((
+    ctx: CanvasRenderingContext2D,
+    x: number,
+    y: number,
+    variant: 'player' | 'enemy' = 'player',
+    frame = 0,
+    intensity = 1,
+    width = 2,
+    gap = 6,
+  ) => {
+    const isPlayer = variant === 'player'
+    const isBlinking = isPlayer && frame % 190 < 8
+
+    if (isBlinking) {
+      drawPixelRect(ctx, x, y + 1, width, 1, '#07070a')
+      drawPixelRect(ctx, x + gap, y + 1, width, 1, '#07070a')
+      return
+    }
+
+    const color = isPlayer ? '#f8fbff' : '#ff2a2a'
+    const glowColor = isPlayer ? 'rgba(210, 245, 255, 0.9)' : 'rgba(255, 30, 30, 0.95)'
+    const pulse = 0.75 + Math.sin(frame * (isPlayer ? 0.08 : 0.16)) * 0.25
+
+    ctx.save()
+    ctx.globalCompositeOperation = 'screen'
+    ctx.shadowColor = glowColor
+    ctx.shadowBlur = (isPlayer ? 8 : 14) * intensity * pulse
+    drawPixelRect(ctx, x, y, width, 2, color)
+    drawPixelRect(ctx, x + gap, y, width, 2, color)
+    ctx.restore()
+
+    drawPixelRect(ctx, x, y, width, 1, color)
+    drawPixelRect(ctx, x + gap, y, width, 1, color)
+  }, [drawPixelRect])
+
+  const applySanityEffects = useCallback((ctx: CanvasRenderingContext2D, currentPlayer: Player, frame: number) => {
+    const sanityPressure = clamp((42 - currentPlayer.sanity) / 42, 0, 1)
+    const healthPressure = clamp((30 - currentPlayer.health) / 30, 0, 1)
+    const dangerPressure = Math.max(sanityPressure, healthPressure)
+
+    if (dangerPressure <= 0) return
+
+    const glitchGate = frame % 28 < 5 ? 1 : 0.22
+    const jitterX = Math.round((hashNumber(frame * 0.61 + currentPlayer.position.x) - 0.5) * 5 * dangerPressure * glitchGate)
+    const jitterY = Math.round((hashNumber(frame * 0.47 + currentPlayer.position.y + 9) - 0.5) * 3 * dangerPressure * glitchGate)
+    const shear = Math.sin(frame * 0.31) * 0.018 * sanityPressure
+    const alphaDip = (frame % 18 < 3 ? 0.18 : 0.06) * dangerPressure
+
+    ctx.translate(jitterX, jitterY)
+    ctx.transform(1, shear, -shear * 0.45, 1, 0, 0)
+    ctx.globalAlpha *= 1 - alphaDip
   }, [])
 
   const drawDecoration = useCallback((ctx: CanvasRenderingContext2D, decoration: any, frame: number) => {
@@ -218,6 +318,194 @@ export function GameRenderer({ level, player, glitchIntensity, showVHSEffect, va
     ctx.beginPath()
     ctx.arc(x, y, radius, 0, Math.PI * 2)
     ctx.fill()
+    ctx.restore()
+  }, [])
+
+  const drawBackgroundBlur = useCallback((ctx: CanvasRenderingContext2D, width: number, height: number, frame: number) => {
+    const driftAlpha = 0.16 + Math.sin(frame * 0.012) * 0.025
+
+    ctx.save()
+    ctx.globalAlpha = driftAlpha
+    ctx.filter = 'blur(0.75px)'
+    ctx.drawImage(ctx.canvas, 0, 0, width, height, 0, 0, width, height)
+    ctx.filter = 'none'
+    ctx.globalCompositeOperation = 'multiply'
+    ctx.globalAlpha = 0.12
+    ctx.fillStyle = '#090b12'
+    ctx.fillRect(0, 0, width, height)
+    ctx.restore()
+  }, [])
+
+  const applyDepthLayers = useCallback((ctx: CanvasRenderingContext2D, currentLevel: Level, currentPlayer: Player, frame: number) => {
+    const focusX = currentPlayer.position.x + currentPlayer.width / 2
+    const focusY = currentPlayer.position.y + currentPlayer.height / 2
+    const radius = Math.max(210, Math.min(currentLevel.width, currentLevel.height) * 0.36)
+    const pulse = 0.5 + Math.sin(frame * 0.025) * 0.5
+
+    ctx.save()
+    const focusShadow = ctx.createRadialGradient(focusX, focusY, 0, focusX, focusY, radius)
+    focusShadow.addColorStop(0, 'rgba(0, 0, 0, 0)')
+    focusShadow.addColorStop(0.52, 'rgba(0, 0, 0, 0.045)')
+    focusShadow.addColorStop(1, `rgba(0, 0, 0, ${0.18 + pulse * 0.035})`)
+    ctx.fillStyle = focusShadow
+    ctx.fillRect(0, 0, currentLevel.width, currentLevel.height)
+
+    const verticalDepth = ctx.createLinearGradient(0, 0, 0, currentLevel.height)
+    verticalDepth.addColorStop(0, 'rgba(0, 0, 0, 0.18)')
+    verticalDepth.addColorStop(0.2, 'rgba(0, 0, 0, 0.03)')
+    verticalDepth.addColorStop(0.72, 'rgba(0, 0, 0, 0.02)')
+    verticalDepth.addColorStop(1, 'rgba(0, 0, 0, 0.22)')
+    ctx.fillStyle = verticalDepth
+    ctx.fillRect(0, 0, currentLevel.width, currentLevel.height)
+    ctx.restore()
+  }, [])
+
+  const drawInteractiveGlow = useCallback((
+    ctx: CanvasRenderingContext2D,
+    x: number,
+    y: number,
+    width: number,
+    height: number,
+    frame: number,
+    tone: GlowTone = 'cyan',
+    intensity = 1,
+  ) => {
+    const color = getGlowColor(tone)
+    const centerX = x + width / 2
+    const centerY = y + height / 2
+    const radius = Math.max(width, height) * (1.45 + intensity * 0.28)
+    const pulse = 0.68 + Math.sin(frame * 0.085 + x * 0.013 + y * 0.017) * 0.24
+    const alpha = clamp((0.08 + intensity * 0.08) * pulse, 0.025, 0.28)
+
+    ctx.save()
+    ctx.globalCompositeOperation = 'screen'
+    const glow = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, radius)
+    glow.addColorStop(0, rgba(color, alpha))
+    glow.addColorStop(0.46, rgba(color, alpha * 0.32))
+    glow.addColorStop(1, rgba(color, 0))
+    ctx.fillStyle = glow
+    ctx.fillRect(centerX - radius, centerY - radius, radius * 2, radius * 2)
+
+    ctx.shadowColor = rgba(color, 0.75)
+    ctx.shadowBlur = 8 + intensity * 8
+    ctx.strokeStyle = rgba(color, 0.16 + intensity * 0.08)
+    ctx.lineWidth = 1
+    ctx.strokeRect(Math.floor(x) + 0.5, Math.floor(y) + 0.5, Math.floor(width), Math.floor(height))
+    ctx.restore()
+  }, [])
+
+  const drawPlayerLight = useCallback((ctx: CanvasRenderingContext2D, currentPlayer: Player, currentLevel: Level, frame: number) => {
+    const centerX = currentPlayer.position.x + currentPlayer.width / 2
+    const centerY = currentPlayer.position.y + currentPlayer.height / 2 + 4
+    const sanityPressure = clamp((70 - currentPlayer.sanity) / 70, 0, 1)
+    const flashlightIntensity = currentPlayer.flashlightBroken ? getBrokenFlashlightIntensity(frame) : 1
+    const auraPulse = 0.88 + Math.sin(frame * 0.055) * 0.08
+    const auraRadius = (currentLevel.isDark && !currentLevel.lightsOn ? 92 : 66) + sanityPressure * 12
+
+    ctx.save()
+    ctx.globalCompositeOperation = 'screen'
+    const aura = ctx.createRadialGradient(centerX, centerY, 0, centerX, centerY, auraRadius)
+    aura.addColorStop(0, rgba(WARM_LIGHT, 0.14 * auraPulse))
+    aura.addColorStop(0.34, rgba(WARM_LIGHT, 0.06 * auraPulse))
+    aura.addColorStop(0.78, rgba(CYAN_LIGHT, 0.018 * (1 - sanityPressure)))
+    aura.addColorStop(1, rgba(WARM_LIGHT, 0))
+    ctx.fillStyle = aura
+    ctx.fillRect(centerX - auraRadius, centerY - auraRadius, auraRadius * 2, auraRadius * 2)
+
+    if (currentPlayer.hasFlashlight) {
+      const flashlight = getFlashlightOrigin(currentPlayer)
+      const beamLength = currentLevel.isDark && !currentLevel.lightsOn ? 132 : 86
+      const beamSpread = currentLevel.isDark && !currentLevel.lightsOn ? 44 : 30
+
+      ctx.translate(flashlight.x, flashlight.y)
+      ctx.rotate(flashlight.angle)
+      const beam = ctx.createLinearGradient(0, 0, beamLength, 0)
+      beam.addColorStop(0, rgba(WARM_LIGHT, 0.13 * flashlightIntensity))
+      beam.addColorStop(0.48, rgba(WARM_LIGHT, 0.05 * flashlightIntensity))
+      beam.addColorStop(1, rgba(WARM_LIGHT, 0))
+      ctx.fillStyle = beam
+      ctx.beginPath()
+      ctx.moveTo(0, 0)
+      ctx.lineTo(beamLength, -beamSpread * 0.48)
+      ctx.quadraticCurveTo(beamLength * 1.04, 0, beamLength, beamSpread * 0.48)
+      ctx.closePath()
+      ctx.fill()
+    }
+
+    ctx.restore()
+  }, [getBrokenFlashlightIntensity, getFlashlightOrigin])
+
+  const drawEnemyEffects = useCallback((ctx: CanvasRenderingContext2D, enemy: Enemy, frame: number) => {
+    const { x, y } = enemy.position
+    const centerX = x + enemy.width / 2
+    const centerY = y + enemy.height / 2
+    const chasePressure = enemy.behaviorState === 'chase' ? 1 : 0.55
+    const isEcho = enemy.type === 'echo'
+    const instabilitySeed = Math.floor(frame / 5) + x * 0.073 + y * 0.041
+    const glitchBurst = hashNumber(instabilitySeed) > (enemy.type === 'operator' ? 0.58 : 0.78)
+    const alpha = isEcho
+      ? 0.72 + Math.sin(frame * 0.08 + x) * 0.18
+      : glitchBurst ? 0.58 + hashNumber(instabilitySeed + 5) * 0.22 : 0.92 + Math.sin(frame * 0.035 + y) * 0.08
+    const jitterX = glitchBurst ? Math.round((hashNumber(instabilitySeed + 9) - 0.5) * 7) : 0
+    const jitterY = glitchBurst ? Math.round((hashNumber(instabilitySeed + 12) - 0.5) * 3) : 0
+    const glowRadius = Math.max(enemy.width, enemy.height) * (enemy.type === 'operator' ? 2.6 : enemy.type === 'stalker' ? 2.25 : 1.8)
+
+    drawShadow(
+      ctx,
+      centerX,
+      y + enemy.height + 3,
+      enemy.width * (enemy.type === 'operator' ? 0.8 : 0.64),
+      enemy.type === 'echo' ? 6 : 9,
+      enemy.type === 'echo' ? 0.24 : 0.55,
+    )
+
+    if (!isEcho) {
+      drawLight(ctx, centerX + jitterX, centerY, glowRadius, RED_LIGHT, (0.09 + chasePressure * 0.08) * (glitchBurst ? 1.45 : 1))
+
+      ctx.save()
+      ctx.globalCompositeOperation = 'screen'
+      ctx.globalAlpha = glitchBurst ? 0.28 : 0.12
+      ctx.fillStyle = 'rgba(255, 20, 20, 0.72)'
+      for (let i = 0; i < 3; i++) {
+        const seed = instabilitySeed + i * 13
+        const sliceY = y + hashNumber(seed) * enemy.height
+        const shift = (hashNumber(seed + 3) - 0.5) * 12
+        ctx.fillRect(x - 6 + shift, sliceY, enemy.width + 12, 1 + Math.floor(hashNumber(seed + 6) * 2))
+      }
+      ctx.restore()
+    }
+
+    return { alpha: clamp(alpha, 0.45, 1), jitterX, jitterY }
+  }, [drawLight, drawShadow])
+
+  const drawAtmosphere = useCallback((ctx: CanvasRenderingContext2D, currentLevel: Level, currentPlayer: Player, frame: number) => {
+    const playerX = currentPlayer.position.x + currentPlayer.width / 2
+    const playerY = currentPlayer.position.y + currentPlayer.height / 2
+    const sanityPressure = clamp((78 - currentPlayer.sanity) / 78, 0, 1)
+    const darkness = currentLevel.isDark && !currentLevel.lightsOn ? 0.16 : 0.075
+
+    ctx.save()
+    const shadow = ctx.createRadialGradient(playerX, playerY, 76, playerX, playerY, Math.max(currentLevel.width, currentLevel.height) * 0.72)
+    shadow.addColorStop(0, 'rgba(0, 0, 0, 0)')
+    shadow.addColorStop(0.46, `rgba(0, 0, 0, ${darkness * 0.55})`)
+    shadow.addColorStop(1, `rgba(0, 0, 0, ${0.26 + sanityPressure * 0.12})`)
+    ctx.fillStyle = shadow
+    ctx.fillRect(0, 0, currentLevel.width, currentLevel.height)
+
+    ctx.globalCompositeOperation = 'screen'
+    for (let i = 0; i < 3; i++) {
+      const seed = currentLevel.id * 67 + i * 29
+      const fogX = (hashNumber(seed) * currentLevel.width + Math.sin(frame * 0.003 + i) * 58 + currentLevel.width) % currentLevel.width
+      const fogY = (hashNumber(seed + 4) * currentLevel.height + Math.cos(frame * 0.002 + i) * 42 + currentLevel.height) % currentLevel.height
+      const radius = 150 + hashNumber(seed + 8) * 160
+      const fog = ctx.createRadialGradient(fogX, fogY, 0, fogX, fogY, radius)
+      fog.addColorStop(0, `rgba(120, 150, 156, ${0.022 + sanityPressure * 0.018})`)
+      fog.addColorStop(0.64, `rgba(120, 150, 156, ${0.006 + sanityPressure * 0.008})`)
+      fog.addColorStop(1, 'rgba(120, 150, 156, 0)')
+      ctx.fillStyle = fog
+      ctx.fillRect(fogX - radius, fogY - radius, radius * 2, radius * 2)
+    }
+
     ctx.restore()
   }, [])
 
@@ -492,206 +780,284 @@ export function GameRenderer({ level, player, glitchIntensity, showVHSEffect, va
     ctx.restore()
   }, [])
 
-  // Draw player sprite
-  const drawPlayer = useCallback((ctx: CanvasRenderingContext2D, player: Player, frame: number) => {
-    const { x, y } = player.position
-    const animFrame = player.isMoving ? Math.floor(frame / 8) % 4 : 0
-    const breathe = Math.sin(frame * 0.05) * 1.8
-    const flashlightActive = Boolean(level.isDark && !level.lightsOn && player.hasFlashlight)
-    
-    // Hiding state
-    if (player.isHiding) {
-      ctx.globalAlpha = 0.35
-    }
-    
-    const bodyColor = player.isSprinting ? '#6a1a1a' : '#2d2d3a'
-    const jacketHighlight = player.isSprinting ? '#8a2a2a' : '#3d3d4a'
-    const skinColor = '#dfb895'
-    const skinShadow = '#c49a7a'
-    const hairColor = '#121212'
-    
-    // Smooth entity shadow with pulsing
-    drawEntityShadow(ctx, x + 12, y + 32, 15 + (player.isMoving ? Math.sin(frame * 0.2) * 3 : 0), 6, player.isSprinting ? 0.48 : 0.38)
+  const drawCharacter = useCallback((ctx: CanvasRenderingContext2D, entity: CharacterRenderEntity) => {
+    const { x, y } = entity.position
+    const frame = entity.frame
+    const isPlayer = entity.kind === 'player'
+    const baseScale = isPlayer ? 1.12 : entity.enemyType === 'stalker' ? 1.08 : 1
+    const breathScale = isPlayer && !entity.isMoving ? 1 + Math.sin(frame * 0.06) * 0.018 : 1
+    const centerX = x + entity.width / 2
+    const footY = y + entity.height
+    const bob = entity.isMoving ? Math.sin(frame * 0.22) * 1.5 : Math.sin(frame * 0.055) * 1.4
+    const headBob = bob * 0.48
+    const step = entity.isMoving ? Math.sin(frame * 0.28) * 3.5 : 0
 
-    const walkOffset = player.isMoving ? Math.sin(animFrame * Math.PI / 2) * 3.5 : breathe
-    
-    // Legs - More detailed
-    const legColor = '#1a1a25'
-    const shoeColor = '#0f0f15'
-    if (player.isMoving) {
-      const step = Math.sin(frame * 0.2) * 5
-      // Left Leg
-      drawPixelRect(ctx, x + 5, y + 24 + step, 6, 6, legColor)
-      drawPixelRect(ctx, x + 5, y + 30 + step, 7, 3, shoeColor)
-      // Right Leg
-      drawPixelRect(ctx, x + 13, y + 24 - step, 6, 6, legColor)
-      drawPixelRect(ctx, x + 13, y + 30 - step, 7, 3, shoeColor)
+    ctx.save()
+    ctx.translate(centerX, footY)
+    ctx.scale(baseScale, baseScale * breathScale)
+    ctx.translate(-centerX, -footY)
+
+    if (isPlayer) {
+      const bodyY = y + 11 + bob
+      const headY = y + 2 + headBob
+      const leftStep = step
+      const rightStep = -step
+      const bodyColor = entity.isSprinting ? '#6f1f22' : '#252733'
+      const jacketHighlight = entity.isSprinting ? '#9b3033' : '#3b4150'
+      const sleeveColor = entity.isSprinting ? '#421013' : '#191b24'
+      const legColor = '#141620'
+      const shoeColor = '#06070b'
+      const skinColor = '#d7ad8f'
+      const skinShadow = '#a87563'
+      const hairColor = '#09090d'
+      const sanityPressure = clamp((36 - (entity.sanity ?? 100)) / 36, 0, 1)
+
+      drawOutlinedPixelRect(ctx, x + 4, y + 24 + leftStep, 6, 8, legColor)
+      drawOutlinedPixelRect(ctx, x + 4, y + 31 + leftStep, 8, 3, shoeColor)
+      drawOutlinedPixelRect(ctx, x + 14, y + 24 + rightStep, 6, 8, legColor)
+      drawOutlinedPixelRect(ctx, x + 13, y + 31 + rightStep, 8, 3, shoeColor)
+
+      drawOutlinedPixelRect(ctx, x + 1, bodyY + 3, 4, 12, sleeveColor)
+      drawOutlinedPixelRect(ctx, x + 20, bodyY + 3, 4, 12, sleeveColor)
+      drawOutlinedPixelRect(ctx, x + 3, bodyY, 18, 16, bodyColor)
+      drawPixelRect(ctx, x + 4, bodyY + 1, 16, 2, jacketHighlight)
+      drawPixelRect(ctx, x + 4, bodyY + 3, 2, 12, 'rgba(0, 0, 0, 0.28)')
+      drawPixelRect(ctx, x + 11, bodyY + 2, 2, 14, '#0d0e14')
+      drawPixelRect(ctx, x + 7, bodyY + 5, 3, 2, sanityPressure > 0.45 ? '#841515' : '#59616f')
+      drawPixelRect(ctx, x + 14, bodyY + 7, 4, 1, '#59616f')
+
+      drawOutlinedPixelRect(ctx, x + 6, headY, 12, 12, skinColor)
+      drawPixelRect(ctx, x + 6, headY + 9, 12, 3, skinShadow)
+      drawOutlinedPixelRect(ctx, x + 5, headY - 2, 14, 6, hairColor)
+      drawPixelRect(ctx, x + 4, headY + 1, 2, 6, hairColor)
+      drawPixelRect(ctx, x + 18, headY + 1, 2, 6, hairColor)
+
+      if (entity.direction !== 'up') {
+        drawEyes(ctx, x + 8, headY + 6, 'player', frame, 1 + sanityPressure * 0.5)
+      }
+
+      if (sanityPressure > 0.55) {
+        drawPixelRect(ctx, x + 6, headY + 8, 12, 2, `rgba(135, 0, 0, ${0.12 + sanityPressure * 0.16})`)
+      }
+
+      if (entity.flashlightActive) {
+        const handY = bodyY + 8
+        const handX = entity.direction === 'left' ? x + 0 : entity.direction === 'right' ? x + 21 : x + 18
+        const lensX = entity.direction === 'left' ? handX - 1 : handX + 4
+
+        ctx.save()
+        ctx.shadowColor = 'rgba(255, 242, 190, 0.72)'
+        ctx.shadowBlur = 10
+        drawOutlinedPixelRect(ctx, handX, handY, 6, 4, '#555f6d')
+        drawPixelRect(ctx, handX + 1, handY + 1, 4, 2, '#7b8798')
+        drawPixelRect(ctx, lensX, handY + 1, 2, 2, '#fff4ba')
+        ctx.restore()
+      }
     } else {
-      drawPixelRect(ctx, x + 5, y + 24, 6, 7, legColor)
-      drawPixelRect(ctx, x + 5, y + 31, 7, 3, shoeColor)
-      drawPixelRect(ctx, x + 13, y + 24, 6, 7, legColor)
-      drawPixelRect(ctx, x + 13, y + 31, 7, 3, shoeColor)
-    }
+      const bodyY = y + 8 + bob
+      const headY = y + 1 + headBob
+      const chase = entity.behaviorState === 'chase'
+      const coatColor = chase ? '#130507' : '#07080d'
+      const coatLight = chase ? '#3a0b10' : '#171923'
+      const legColor = '#030407'
 
-    // Torso (Detailed Jacket)
-    drawPixelRect(ctx, x + 3, y + 10 + walkOffset, 18, 16, bodyColor)
-    // Jacket Shading/Detail
-    drawPixelRect(ctx, x + 3, y + 10 + walkOffset, 2, 16, 'rgba(0,0,0,0.2)') // Side shadow
-    drawPixelRect(ctx, x + 4, y + 10 + walkOffset, 16, 2, jacketHighlight) // Top highlight
-    drawPixelRect(ctx, x + 11, y + 12 + walkOffset, 2, 14, '#1a1a20') // Zipper/Center line
-    
-    // Head - With shading
-    drawPixelRect(ctx, x + 6, y + 2 + (walkOffset * 0.6), 12, 12, skinColor)
-    drawPixelRect(ctx, x + 6, y + 10 + (walkOffset * 0.6), 12, 4, skinShadow) // Chin shadow
-    
-    // Hair - More volume
-    drawPixelRect(ctx, x + 5, y + 0 + (walkOffset * 0.6), 14, 6, hairColor)
-    drawPixelRect(ctx, x + 4, y + 2 + (walkOffset * 0.6), 2, 6, hairColor)
-    drawPixelRect(ctx, x + 18, y + 2 + (walkOffset * 0.6), 2, 6, hairColor)
-    
-    // Eyes - With blink logic
-    const isBlinking = frame % 200 < 10
-    if (player.direction !== 'up' && !isBlinking) {
-      const eyeColor = player.sanity < 35 ? '#ff1a1a' : '#1a1a1a'
-      drawPixelRect(ctx, x + 8, y + 8 + (walkOffset * 0.6), 2, 2, eyeColor)
-      drawPixelRect(ctx, x + 14, y + 8 + (walkOffset * 0.6), 2, 2, eyeColor)
-      
-      if (player.sanity < 20) {
-        // Crazed look
-        ctx.fillStyle = 'rgba(255, 0, 0, 0.2)'
-        ctx.fillRect(x + 6, y + 7 + (walkOffset * 0.6), 12, 4)
+      drawOutlinedPixelRect(ctx, x + 8, y + 25 + step, 6, 11, legColor)
+      drawOutlinedPixelRect(ctx, x + 17, y + 25 - step, 6, 11, legColor)
+      drawOutlinedPixelRect(ctx, x + 5, bodyY, 20, 23, coatColor)
+      drawPixelRect(ctx, x + 7, bodyY + 2, 16, 2, coatLight)
+      drawPixelRect(ctx, x + 14, bodyY + 3, 2, 18, '#010204')
+      drawPixelRect(ctx, x + 9, bodyY + 9, 3, 2, '#4c1114')
+      drawOutlinedPixelRect(ctx, x + 7, headY, 16, 13, '#07070a')
+      drawPixelRect(ctx, x + 7, headY + 9, 16, 4, '#010102')
+      drawEyes(ctx, x + 10, headY + 6, 'enemy', frame, chase ? 1.35 : 1, 3, 8)
+
+      if (entity.stunned) {
+        drawPixelRect(ctx, x + 4, bodyY + 6, 23, 1, 'rgba(103, 232, 249, 0.72)')
+        drawPixelRect(ctx, x + 7, bodyY + 14, 18, 1, 'rgba(103, 232, 249, 0.5)')
       }
     }
-    
-    // Flashlight held in hand
-    if (flashlightActive) {
-      const { x: fx, y: fy } = getFlashlightOrigin(player)
-      ctx.save()
-      ctx.shadowColor = 'rgba(255, 240, 180, 0.6)'
-      ctx.shadowBlur = 12
-      // Flashlight body
-      drawPixelRect(ctx, fx - 3, fy - 1 + walkOffset, 6, 5, '#4b5563')
-      drawPixelRect(ctx, fx - 1, fy - 1 + walkOffset, 4, 5, '#64748b')
-      // Lens glow
-      ctx.fillStyle = '#fff4b5'
-      ctx.fillRect(fx, fy + walkOffset, 3, 3)
-      ctx.restore()
+
+    ctx.restore()
+  }, [drawEyes, drawOutlinedPixelRect, drawPixelRect])
+
+  const drawPlayerCriticalGlitch = useCallback((ctx: CanvasRenderingContext2D, currentPlayer: Player, frame: number) => {
+    const { x, y } = currentPlayer.position
+    const sanityPressure = clamp((32 - currentPlayer.sanity) / 32, 0, 1)
+    const healthPressure = clamp((24 - currentPlayer.health) / 24, 0, 1)
+    const pressure = Math.max(sanityPressure, healthPressure)
+
+    if (pressure <= 0) return
+
+    ctx.save()
+    ctx.globalCompositeOperation = 'screen'
+    ctx.globalAlpha = 0.08 + pressure * 0.18
+
+    for (let i = 0; i < 4; i++) {
+      const seed = frame * 0.19 + i * 13.7
+      const sliceY = y + 4 + hashNumber(seed) * (currentPlayer.height - 3)
+      const shift = Math.round((hashNumber(seed + 4) - 0.5) * 12 * pressure)
+      const sliceHeight = 1 + Math.floor(hashNumber(seed + 8) * 3)
+      ctx.fillStyle = i % 2 === 0 ? 'rgba(255, 35, 35, 0.9)' : 'rgba(80, 240, 255, 0.75)'
+      ctx.fillRect(x - 4 + shift, sliceY, currentPlayer.width + 10, sliceHeight)
     }
-    
-    ctx.globalAlpha = 1.0
-  }, [drawEntityShadow, drawPixelRect, getFlashlightOrigin, level.isDark, level.lightsOn])
+
+    ctx.restore()
+  }, [])
+
+  // Draw player sprite
+  const drawPlayer = useCallback((ctx: CanvasRenderingContext2D, currentPlayer: Player, frame: number) => {
+    const { x, y } = currentPlayer.position
+    const flashlightActive = Boolean(level.isDark && !level.lightsOn && currentPlayer.hasFlashlight)
+    const dangerPressure = Math.max(
+      clamp((38 - currentPlayer.sanity) / 38, 0, 1),
+      clamp((26 - currentPlayer.health) / 26, 0, 1),
+    )
+    const shadowPulse = currentPlayer.isMoving ? Math.sin(frame * 0.2) * 2.5 : Math.sin(frame * 0.06) * 1.2
+
+    drawShadow(
+      ctx,
+      x + currentPlayer.width / 2,
+      y + currentPlayer.height + 2,
+      17 + shadowPulse,
+      6.5,
+      currentPlayer.isSprinting ? 0.5 : 0.38 + dangerPressure * 0.08,
+    )
+
+    ctx.save()
+    if (currentPlayer.isHiding) {
+      ctx.globalAlpha = 0.42
+    }
+    applySanityEffects(ctx, currentPlayer, frame)
+    drawCharacter(ctx, {
+      kind: 'player',
+      position: currentPlayer.position,
+      width: currentPlayer.width,
+      height: currentPlayer.height,
+      direction: currentPlayer.direction,
+      isMoving: currentPlayer.isMoving,
+      frame,
+      isSprinting: currentPlayer.isSprinting,
+      isHiding: currentPlayer.isHiding,
+      sanity: currentPlayer.sanity,
+      health: currentPlayer.health,
+      flashlightActive,
+    })
+    ctx.restore()
+
+    drawPlayerCriticalGlitch(ctx, currentPlayer, frame)
+  }, [applySanityEffects, drawCharacter, drawPlayerCriticalGlitch, drawShadow, level.isDark, level.lightsOn])
 
   const drawEnemy = useCallback((ctx: CanvasRenderingContext2D, enemy: Enemy, frame: number) => {
     const { x, y } = enemy.position
     const t = frame * 0.1
+    const centerX = x + enemy.width / 2
+    const centerY = y + enemy.height / 2
+    const chase = enemy.behaviorState === 'chase'
+    const instability = drawEnemyEffects(ctx, enemy, frame)
+
+    ctx.save()
+    ctx.translate(instability.jitterX, instability.jitterY)
+    ctx.globalAlpha *= instability.alpha
     
     if (enemy.type === 'operator') {
-      // Tall, glitched, terrifying figure
-      const glitchX = Math.sin(t * 2) * 3 * (Math.random() > 0.8 ? 2 : 0.5)
+      const glitchSeed = hashNumber(frame * 0.37 + x * 0.11 + y * 0.07)
+      const glitchX = Math.round(Math.sin(t * 2) * 1.4 + (frame % 24 < 5 ? (glitchSeed - 0.5) * 7 : 0))
+
       ctx.save()
       ctx.translate(glitchX, 0)
       
-      // Main silhouette (Deepest black)
-      ctx.fillStyle = '#020202'
-      ctx.fillRect(x + 5, y, enemy.width - 10, enemy.height)
+      drawOutlinedPixelRect(ctx, x + 5, y + 1, enemy.width - 10, enemy.height - 1, '#020203', '#000000')
+      drawPixelRect(ctx, x + 7, y + 15, enemy.width - 14, enemy.height - 15, '#09090b')
+      drawPixelRect(ctx, x + 9, y + 4, enemy.width - 18, 11, '#040405')
       
-      // Corruption particles
-      for (let i = 0; i < 8; i++) {
-        const px = x + hashNumber(i + t) * enemy.width
-        const py = y + hashNumber(i + t + 5) * enemy.height
-        const size = 1 + hashNumber(i) * 3
-        ctx.fillStyle = Math.random() > 0.7 ? '#ff0000' : '#ffffff33'
+      for (let i = 0; i < 9; i++) {
+        const seed = frame * 0.16 + i * 17.3
+        const px = x + hashNumber(seed) * enemy.width
+        const py = y + hashNumber(seed + 5) * enemy.height
+        const size = 1 + Math.floor(hashNumber(seed + 8) * 3)
+        ctx.fillStyle = hashNumber(seed + 11) > 0.64 ? '#ff2020' : 'rgba(255, 255, 255, 0.18)'
         ctx.fillRect(px, py, size, size)
       }
 
-      // Suit detail (slightly lighter black/grey)
-      ctx.fillStyle = '#0a0a0a'
-      ctx.fillRect(x + 7, y + 15, enemy.width - 14, enemy.height - 15)
+      const corePulse = 0.34 + Math.sin(t * 1.5) * 0.22
+      drawPixelRect(ctx, x + enemy.width / 2 - 2, y + 18, 4, 13, `rgba(220, 0, 0, ${corePulse})`)
+      drawEyes(ctx, x + 10, y + 8, 'enemy', frame, 1.65, 5, Math.max(6, enemy.width - 20))
       
-      // Red glowing tie/core
-      const corePulse = 0.4 + Math.sin(t * 1.5) * 0.3
-      ctx.fillStyle = `rgba(200, 0, 0, ${corePulse})`
-      ctx.fillRect(x + enemy.width / 2 - 2, y + 18, 4, 12)
-
-      // Eyes - Piercing red
-      const eyeGlow = 0.7 + Math.sin(t * 3) * 0.3
-      ctx.shadowColor = '#ff0000'
-      ctx.shadowBlur = 20 * eyeGlow
-      ctx.fillStyle = '#ff0000'
-      ctx.fillRect(x + 10, y + 7, 5, 2)
-      ctx.fillRect(x + enemy.width - 15, y + 7, 5, 2)
-      
-      // Static distortion lines
-      ctx.strokeStyle = `rgba(255, 255, 255, ${0.1 * Math.random()})`
+      ctx.strokeStyle = `rgba(255, 40, 40, ${0.08 + hashNumber(frame * 0.2) * 0.08})`
       ctx.lineWidth = 1
       for (let i = 0; i < 4; i++) {
-        const ly = y + (i * 12 + t * 10) % enemy.height
-        ctx.beginPath(); ctx.moveTo(x - 5, ly); ctx.lineTo(x + enemy.width + 5, ly); ctx.stroke()
+        const ly = y + ((i * 12 + t * 10) % enemy.height)
+        ctx.beginPath()
+        ctx.moveTo(x - 5, ly)
+        ctx.lineTo(x + enemy.width + 5, ly)
+        ctx.stroke()
       }
       
       ctx.restore()
     } else if (enemy.type === 'echo') {
-      // Ghostly, translucent, trailing
-      const alpha = 0.25 + Math.sin(t * 0.8) * 0.15
+      const alpha = 0.24 + Math.sin(t * 0.8) * 0.12
       ctx.save()
       
-      // Motion Blur / Echoes
       for (let i = 3; i > 0; i--) {
-        const ox = Math.sin(t - i * 0.2) * 8
+        const ox = Math.sin(t - i * 0.28) * 8
         ctx.globalAlpha = alpha / (i + 1)
-        ctx.fillStyle = '#94a3b8'
-        ctx.beginPath()
-        ctx.arc(x + enemy.width / 2 + ox, y + 12, 10, 0, Math.PI * 2)
-        ctx.fill()
-        ctx.fillRect(x + 4 + ox, y + 12, enemy.width - 8, enemy.height - 12)
+        drawPixelRect(ctx, x + 5 + ox, y + 4, enemy.width - 10, 12, '#b8c4d2')
+        drawPixelRect(ctx, x + 4 + ox, y + 15, enemy.width - 8, enemy.height - 14, '#8da0b4')
       }
 
-      // Main body
-      ctx.globalAlpha = alpha + 0.1
-      ctx.fillStyle = '#cbd5e1'
-      ctx.beginPath(); ctx.arc(x + enemy.width / 2, y + 12, 11, 0, Math.PI * 2); ctx.fill()
-      ctx.fillRect(x + 3, y + 12, enemy.width - 6, enemy.height - 12)
-      
-      // Hollow eyes
-      ctx.fillStyle = '#0f172a'
-      ctx.beginPath(); ctx.arc(x + 10, y + 11, 3, 0, Math.PI * 2); ctx.fill()
-      ctx.beginPath(); ctx.arc(x + enemy.width - 10, y + 11, 3, 0, Math.PI * 2); ctx.fill()
+      ctx.globalAlpha = alpha + 0.18
+      drawOutlinedPixelRect(ctx, x + 5, y + 4, enemy.width - 10, 12, '#cbd5e1', 'rgba(10, 13, 20, 0.7)')
+      drawOutlinedPixelRect(ctx, x + 3, y + 15, enemy.width - 6, enemy.height - 14, '#9aa9bb', 'rgba(10, 13, 20, 0.72)')
+      drawPixelRect(ctx, x + 6, y + enemy.height - 5, 5, 4, 'rgba(2, 6, 23, 0.45)')
+      drawPixelRect(ctx, x + enemy.width - 11, y + enemy.height - 6, 5, 5, 'rgba(2, 6, 23, 0.45)')
+      drawEyes(ctx, x + 9, y + 11, 'enemy', frame, 0.9, 2, Math.max(7, enemy.width - 18))
       
       ctx.restore()
     } else if (enemy.type === 'shadow') {
-      // Shifting void, dark blue/purple
       const pulse = 1 + Math.sin(t * 1.2) * 0.08
       ctx.save()
-      ctx.translate(x + enemy.width / 2, y + enemy.height / 2)
+      ctx.translate(centerX, centerY)
       ctx.scale(pulse, pulse)
       
-      // Outer aura
-      const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, enemy.width / 2 + 10)
-      grad.addColorStop(0, '#020617')
-      grad.addColorStop(0.5, '#1e1b4b')
+      const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, enemy.width / 2 + 12)
+      grad.addColorStop(0, '#020207')
+      grad.addColorStop(0.48, '#10101a')
+      grad.addColorStop(0.78, 'rgba(95, 12, 18, 0.38)')
       grad.addColorStop(1, 'transparent')
       
       ctx.fillStyle = grad
-      ctx.beginPath(); ctx.arc(0, 0, enemy.width / 2 + 10, 0, Math.PI * 2); ctx.fill()
+      ctx.beginPath()
+      ctx.arc(0, 0, enemy.width / 2 + 12, 0, Math.PI * 2)
+      ctx.fill()
       
-      // Inner shifting patterns (dithering-like)
-      ctx.fillStyle = '#312e81'
+      ctx.fillStyle = '#12131d'
       for (let i = 0; i < 12; i++) {
         const ang = t * 2 + i * (Math.PI / 6)
         const d = (Math.sin(t + i) * 0.5 + 0.5) * (enemy.width / 3)
         ctx.fillRect(Math.cos(ang) * d - 1, Math.sin(ang) * d - 1, 3, 3)
       }
       
-      // Glowing white pin-prick eyes
-      ctx.fillStyle = '#ffffff'
-      ctx.shadowColor = '#ffffff'
-      ctx.shadowBlur = 8
-      ctx.fillRect(-6, -2, 2, 2)
-      ctx.fillRect(4, -2, 2, 2)
+      drawEyes(ctx, -6, -2, 'enemy', frame, 1.1, 2, 9)
       
       ctx.restore()
+    } else if (enemy.type === 'stalker') {
+      drawLight(ctx, centerX, centerY, enemy.width * 2.1, RED_LIGHT, chase ? 0.1 : 0.055)
+      drawCharacter(ctx, {
+        kind: 'enemy',
+        enemyType: enemy.type,
+        position: enemy.position,
+        width: enemy.width,
+        height: enemy.height,
+        direction: enemy.direction,
+        isMoving: enemy.behaviorState !== 'idle',
+        frame,
+        behaviorState: enemy.behaviorState,
+        stunned: enemy.stunned,
+      })
     }
-  }, [drawEntityShadow, drawPixelRect])
+
+    ctx.restore()
+  }, [drawCharacter, drawEnemyEffects, drawEyes, drawLight, drawOutlinedPixelRect, drawPixelRect])
 
   // Draw collectible
   const drawCollectible = useCallback((ctx: CanvasRenderingContext2D, collectible: Collectible, frame: number) => {
@@ -700,6 +1066,13 @@ export function GameRenderer({ level, player, glitchIntensity, showVHSEffect, va
     const { x, y } = collectible.position
     const floatOffset = Math.sin(frame * 0.1) * 3
     const glowPulse = 0.5 + Math.sin(frame * 0.15) * 0.3
+    const tone: GlowTone = collectible.type === 'memory_fragment' || collectible.type === 'tool'
+      ? 'cyan'
+      : collectible.type === 'vhs_tape'
+        ? 'red'
+        : 'amber'
+
+    drawInteractiveGlow(ctx, x, y + floatOffset, collectible.width || 22, collectible.height || 22, frame, tone, collectible.type === 'vhs_tape' ? 1.2 : 0.86)
     
     if (collectible.type === 'vhs_tape') {
       const tapeY = y + floatOffset
@@ -782,7 +1155,7 @@ export function GameRenderer({ level, player, glitchIntensity, showVHSEffect, va
 
       ctx.shadowBlur = 0
     }
-  }, [])
+  }, [drawInteractiveGlow])
 
   // Draw obstacle
   const drawObstacle = useCallback((ctx: CanvasRenderingContext2D, obstacle: Obstacle, frame: number) => {
@@ -854,6 +1227,17 @@ export function GameRenderer({ level, player, glitchIntensity, showVHSEffect, va
       ctx.fillStyle = '#0a0a0f'
       ctx.fillRect(x + obstacle.width / 4, y + obstacle.height / 3, obstacle.width / 2, obstacle.height / 3)
     } else if (obstacle.type === 'door') {
+      drawInteractiveGlow(
+        ctx,
+        x,
+        y,
+        obstacle.width,
+        obstacle.height,
+        frame,
+        obstacle.requiresKey || obstacle.requiresCode ? 'red' : 'amber',
+        obstacle.isOpen ? 0.36 : 0.74,
+      )
+
       if (obstacle.isOpen) {
         // Open door - just frame
         ctx.strokeStyle = '#1b120b'
@@ -888,6 +1272,8 @@ export function GameRenderer({ level, player, glitchIntensity, showVHSEffect, va
         }
       }
     } else if (obstacle.type === 'hiding_spot') {
+      drawInteractiveGlow(ctx, x, y, obstacle.width, obstacle.height, frame, 'green', 0.42)
+
       // Dumpster / hiding spot
       ctx.fillStyle = '#2a3a2a'
       ctx.fillRect(x, y, obstacle.width, obstacle.height)
@@ -904,12 +1290,19 @@ export function GameRenderer({ level, player, glitchIntensity, showVHSEffect, va
       ctx.font = '8px monospace'
       ctx.fillText('HIDE', x + 12, y + obstacle.height + 12)
     }
-  }, [])
+  }, [drawInteractiveGlow])
 
   // Draw switch
   const drawSwitch = useCallback((ctx: CanvasRenderingContext2D, switchObj: Switch, frame: number, valveValue?: number) => {
     const { x, y } = switchObj.position
     const floatOffset = Math.sin(frame * 0.08) * 2
+    const glowTone: GlowTone = switchObj.isActivated
+      ? 'green'
+      : switchObj.type === 'keypad' || switchObj.type === 'fuse_box'
+        ? 'amber'
+        : 'cyan'
+
+    drawInteractiveGlow(ctx, x, y, switchObj.width, switchObj.height, frame, glowTone, switchObj.isActivated ? 0.58 : 0.96)
     
     if (switchObj.type === 'lever') {
       // Lever base
@@ -1025,7 +1418,7 @@ export function GameRenderer({ level, player, glitchIntensity, showVHSEffect, va
       ctx.font = '8px monospace'
       ctx.fillText('FUSE', x + 8, y + switchObj.height + 10)
     }
-  }, [])
+  }, [drawInteractiveGlow])
 
   // Draw hazard zone
   const drawHazard = useCallback((ctx: CanvasRenderingContext2D, hazard: HazardZone, frame: number) => {
@@ -1042,22 +1435,25 @@ export function GameRenderer({ level, player, glitchIntensity, showVHSEffect, va
     }
     
     if (hazard.type === 'electric') {
+      const electricSeed = frame * 0.37 + x * 0.11 + y * 0.17
+
       // Electric floor
       ctx.fillStyle = 'rgba(0, 150, 255, 0.3)'
       ctx.fillRect(x, y, hazard.width, hazard.height)
       
       // Lightning bolts
-      ctx.strokeStyle = `rgba(150, 200, 255, ${0.5 + Math.random() * 0.5})`
+      ctx.strokeStyle = `rgba(150, 200, 255, ${0.5 + hashNumber(electricSeed) * 0.5})`
       ctx.lineWidth = 2
       for (let i = 0; i < 3; i++) {
-        const startX = x + Math.random() * hazard.width
+        const boltSeed = electricSeed + i * 11.3
+        const startX = x + hashNumber(boltSeed) * hazard.width
         const startY = y
         ctx.beginPath()
         ctx.moveTo(startX, startY)
         let currentX = startX
         let currentY = startY
         for (let j = 0; j < 4; j++) {
-          currentX += (Math.random() - 0.5) * 20
+          currentX += (hashNumber(boltSeed + j * 5.7) - 0.5) * 20
           currentY += hazard.height / 4
           ctx.lineTo(currentX, currentY)
         }
@@ -1067,8 +1463,9 @@ export function GameRenderer({ level, player, glitchIntensity, showVHSEffect, va
       // Sparks
       ctx.fillStyle = '#ffffff'
       for (let i = 0; i < 5; i++) {
-        const sparkX = x + Math.random() * hazard.width
-        const sparkY = y + Math.random() * hazard.height
+        const sparkSeed = electricSeed + i * 19.9
+        const sparkX = x + hashNumber(sparkSeed) * hazard.width
+        const sparkY = y + hashNumber(sparkSeed + 4.4) * hazard.height
         ctx.fillRect(sparkX, sparkY, 2, 2)
       }
     } else if (hazard.type === 'fire') {
@@ -1084,7 +1481,7 @@ export function GameRenderer({ level, player, glitchIntensity, showVHSEffect, va
         ctx.beginPath()
         ctx.moveTo(flameX, y + hazard.height)
         ctx.quadraticCurveTo(
-          flameX + flameWidth / 2, y + hazard.height - flameHeight - Math.random() * 10,
+          flameX + flameWidth / 2, y + hazard.height - flameHeight - hashNumber(frame * 0.41 + i * 7.2 + x) * 10,
           flameX + flameWidth, y + hazard.height
         )
         ctx.fill()
@@ -1103,9 +1500,10 @@ export function GameRenderer({ level, player, glitchIntensity, showVHSEffect, va
       for (let i = 0; i < 10; i++) {
         const px = x + ((frame * 0.5 + i * 50) % hazard.width)
         const py = y + hazard.height - ((frame * 0.3 + i * 30) % hazard.height)
-        ctx.fillStyle = `rgba(150, 255, 150, ${0.3 + Math.random() * 0.2})`
+        const gasSeed = frame * 0.09 + i * 13.4 + y
+        ctx.fillStyle = `rgba(150, 255, 150, ${0.3 + hashNumber(gasSeed) * 0.2})`
         ctx.beginPath()
-        ctx.arc(px, py, 5 + Math.random() * 5, 0, Math.PI * 2)
+        ctx.arc(px, py, 5 + hashNumber(gasSeed + 6.1) * 5, 0, Math.PI * 2)
         ctx.fill()
       }
     }
@@ -1116,7 +1514,7 @@ export function GameRenderer({ level, player, glitchIntensity, showVHSEffect, va
     const { x, y } = npc.position
     const breathe = Math.sin(frame * 0.08) * 1
     
-    drawEntityShadow(ctx, x + 12, y + 30, 12, 5, 0.3)
+    drawShadow(ctx, x + 12, y + 30, 12, 5, 0.3)
     
     let bodyColor = '#4a5568'
     let skinColor = '#e8c4a0'
@@ -1150,7 +1548,7 @@ export function GameRenderer({ level, player, glitchIntensity, showVHSEffect, va
     ctx.closePath()
     ctx.fill()
     ctx.shadowBlur = 0
-  }, [drawEntityShadow, drawPixelRect])
+  }, [drawShadow, drawPixelRect])
 
   // Draw exit
   const drawExit = useCallback((ctx: CanvasRenderingContext2D, level: Level, frame: number) => {
@@ -1160,6 +1558,7 @@ export function GameRenderer({ level, player, glitchIntensity, showVHSEffect, va
     // Check if exit is locked
     const puzzle = level.puzzles.find(p => p.id === level.exitUnlockedBy)
     const isLocked = level.exitLocked && (!puzzle || !puzzle.isSolved)
+    drawInteractiveGlow(ctx, x, y, level.exitWidth, level.exitHeight, frame, isLocked ? 'red' : 'green', isLocked ? 0.82 : 1.24)
     
     if (isLocked) {
       // Locked exit - red glow
@@ -1195,7 +1594,7 @@ export function GameRenderer({ level, player, glitchIntensity, showVHSEffect, va
       
       ctx.shadowBlur = 0
     }
-  }, [])
+  }, [drawInteractiveGlow])
 
   // Draw fog of war
   const drawFogOfWar = useCallback((ctx: CanvasRenderingContext2D, player: Player, level: Level, frame: number, emergencyRevealActive: boolean) => {
@@ -1499,42 +1898,39 @@ export function GameRenderer({ level, player, glitchIntensity, showVHSEffect, va
       ctx.fillStyle = backgroundColor
       ctx.fillRect(0, 0, level.width, level.height)
 
-      // Floor texture
+      // Background layer: floor, room shadows and distant decor get a tiny blur.
       drawFloorTexture(ctx, level, ambientColor)
-
-      // Room depth shadows
       drawMapDepth(ctx, activeObstacles)
 
-      // Draw decorations (behind everything else)
       if (level.decorations) {
         for (const decoration of level.decorations) {
           drawDecoration(ctx, decoration, frame)
         }
       }
 
-      // Draw hazard zones (behind everything)
+      drawBackgroundBlur(ctx, level.width, level.height, frame)
+      applyDepthLayers(ctx, level, player, frame)
+
+      // World layer: hazards, walls, interactables and pickups.
       for (const hazard of level.hazardZones) {
         drawHazard(ctx, hazard, frame)
       }
 
-      // Draw obstacles
       for (const obstacle of activeObstacles) {
         drawObstacle(ctx, obstacle, frame)
       }
 
-      // Draw switches
       for (const switchObj of level.switches) {
         drawSwitch(ctx, switchObj, frame, valveValues[switchObj.id])
       }
 
-      // Draw exit
       drawExit(ctx, level, frame)
 
-      // Draw collectibles
       for (const collectible of level.collectibles) {
         drawCollectible(ctx, collectible, frame)
       }
 
+      // Character layer: NPCs, enemies and player sit above the softened world.
       // Draw NPCs
       for (const npc of level.npcs) {
         drawNPC(ctx, npc, frame)
@@ -1550,7 +1946,8 @@ export function GameRenderer({ level, player, glitchIntensity, showVHSEffect, va
       // Draw player
       drawPlayer(ctx, player, frame)
 
-      // Dynamic glow and ambient particles
+      // Effects layer: focus lighting, threat glow, fog and VHS atmosphere.
+      drawAtmosphere(ctx, level, player, frame)
       drawRedGlowLights(ctx, level, activeObstacles, frame)
       drawParticles(ctx, level, player, frame)
 
@@ -1560,6 +1957,7 @@ export function GameRenderer({ level, player, glitchIntensity, showVHSEffect, va
 
       // Draw fog of war
       drawFogOfWar(ctx, player, level, frame, emergencyReveal.isActive)
+      drawPlayerLight(ctx, player, level, frame)
 
       // Post-processing
       if (level.id === 5) {
@@ -1589,7 +1987,7 @@ export function GameRenderer({ level, player, glitchIntensity, showVHSEffect, va
         cancelAnimationFrame(animationRef.current)
       }
     }
-  }, [level, player, glitchIntensity, showVHSEffect, valveValues, drawPlayer, drawEnemy, drawCollectible, drawDecoration, drawObstacle, drawSwitch, drawHazard, drawNPC, drawExit, drawFloorTexture, drawMapDepth, drawRedGlowLights, drawParticles, drawEmergencyReveal, drawFogOfWar, drawSceneColorGrade, drawSanityDistortion, drawVignette, drawNoise, drawVHSEffect, getActiveObstacles, getEmergencyLightReveal])
+  }, [level, player, glitchIntensity, showVHSEffect, valveValues, drawPlayer, drawEnemy, drawCollectible, drawDecoration, drawObstacle, drawSwitch, drawHazard, drawNPC, drawExit, drawFloorTexture, drawMapDepth, drawBackgroundBlur, applyDepthLayers, drawAtmosphere, drawPlayerLight, drawRedGlowLights, drawParticles, drawEmergencyReveal, drawFogOfWar, drawSceneColorGrade, drawSanityDistortion, drawVignette, drawNoise, drawVHSEffect, getActiveObstacles, getEmergencyLightReveal])
 
   return (
     <canvas
