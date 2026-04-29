@@ -124,86 +124,6 @@ export function GameRenderer({ level, player, glitchIntensity, showVHSEffect, va
     ctx.restore()
   }, [])
 
-  const drawDecoration = useCallback((ctx: CanvasRenderingContext2D, decoration: any, frame: number) => {
-    const { x, y } = decoration.position
-    const { width, height, type, rotation = 0, opacity = 1, scale = 1 } = decoration
-    
-    ctx.save()
-    ctx.translate(x + width / 2, y + height / 2)
-    ctx.rotate((rotation * Math.PI) / 180)
-    ctx.scale(scale, scale)
-    ctx.globalAlpha = opacity
-
-    switch (type) {
-      case 'blood':
-        ctx.fillStyle = '#660a0a'
-        ctx.beginPath()
-        ctx.ellipse(0, 0, width / 2, height / 2, 0, 0, Math.PI * 2)
-        ctx.fill()
-        // Splatters
-        for (let i = 0; i < 3; i++) {
-          const offX = Math.sin(i * 2.5) * (width / 3)
-          const offY = Math.cos(i * 2.5) * (height / 3)
-          ctx.beginPath()
-          ctx.arc(offX, offY, width / 6, 0, Math.PI * 2)
-          ctx.fill()
-        }
-        break
-      case 'crack':
-        ctx.strokeStyle = 'rgba(0, 0, 0, 0.5)'
-        ctx.lineWidth = 1
-        ctx.beginPath()
-        ctx.moveTo(-width / 2, -height / 2)
-        ctx.lineTo(0, 0)
-        ctx.lineTo(width / 4, -height / 4)
-        ctx.lineTo(width / 2, height / 2)
-        ctx.stroke()
-        break
-      case 'poster':
-        ctx.fillStyle = '#d1d5db'
-        ctx.fillRect(-width / 2, -height / 2, width, height)
-        ctx.fillStyle = '#4b5563'
-        ctx.fillRect(-width / 2 + 2, -height / 2 + 2, width - 4, 2)
-        ctx.fillRect(-width / 2 + 2, -height / 2 + 8, width - 6, 1)
-        ctx.fillRect(-width / 2 + 2, -height / 2 + 12, width - 8, 1)
-        break
-      case 'plant':
-        ctx.fillStyle = '#14532d'
-        ctx.beginPath()
-        ctx.moveTo(0, height / 2)
-        ctx.quadraticCurveTo(-width / 2, 0, 0, -height / 2)
-        ctx.quadraticCurveTo(width / 2, 0, 0, height / 2)
-        ctx.fill()
-        ctx.fillStyle = '#064e3b'
-        ctx.fillRect(-2, 0, 4, height / 2)
-        break
-      case 'trash':
-        ctx.fillStyle = '#374151'
-        ctx.fillRect(-width / 2, -height / 4, width, height / 2)
-        ctx.fillStyle = '#1f2937'
-        ctx.fillRect(-width / 3, -height / 2, width / 1.5, height / 1.2)
-        break
-      case 'puddle':
-        ctx.fillStyle = 'rgba(30, 41, 59, 0.4)'
-        ctx.beginPath()
-        ctx.ellipse(0, 0, width / 2, height / 2, 0, 0, Math.PI * 2)
-        ctx.fill()
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.1)'
-        ctx.stroke()
-        break
-      case 'cables':
-        ctx.strokeStyle = '#111827'
-        ctx.lineWidth = 2
-        ctx.beginPath()
-        ctx.moveTo(-width / 2, 0)
-        ctx.bezierCurveTo(-width / 4, height / 2, width / 4, -height / 2, width / 2, 0)
-        ctx.stroke()
-        break
-    }
-
-    ctx.restore()
-  }, [])
-
   const drawLight = useCallback((ctx: CanvasRenderingContext2D, x: number, y: number, radius = 120, color: Rgb = WARM_LIGHT, alpha = 0.28) => {
     ctx.save()
     ctx.globalCompositeOperation = 'screen'
@@ -496,237 +416,224 @@ export function GameRenderer({ level, player, glitchIntensity, showVHSEffect, va
   const drawPlayer = useCallback((ctx: CanvasRenderingContext2D, player: Player, frame: number) => {
     const { x, y } = player.position
     const animFrame = player.isMoving ? Math.floor(frame / 8) % 4 : 0
-    const breathe = Math.sin(frame * 0.05) * 1.8
     const flashlightActive = Boolean(level.isDark && !level.lightsOn && player.hasFlashlight)
-    
+
     // Hiding state
     if (player.isHiding) {
-      ctx.globalAlpha = 0.35
-    }
-    
-    const bodyColor = player.isSprinting ? '#6a1a1a' : '#2d2d3a'
-    const jacketHighlight = player.isSprinting ? '#8a2a2a' : '#3d3d4a'
-    const skinColor = '#dfb895'
-    const skinShadow = '#c49a7a'
-    const hairColor = '#121212'
-    
-    // Smooth entity shadow with pulsing
-    drawEntityShadow(ctx, x + 12, y + 32, 15 + (player.isMoving ? Math.sin(frame * 0.2) * 3 : 0), 6, player.isSprinting ? 0.48 : 0.38)
-
-    const walkOffset = player.isMoving ? Math.sin(animFrame * Math.PI / 2) * 3.5 : breathe
-    
-    // Legs - More detailed
-    const legColor = '#1a1a25'
-    const shoeColor = '#0f0f15'
-    if (player.isMoving) {
-      const step = Math.sin(frame * 0.2) * 5
-      // Left Leg
-      drawPixelRect(ctx, x + 5, y + 24 + step, 6, 6, legColor)
-      drawPixelRect(ctx, x + 5, y + 30 + step, 7, 3, shoeColor)
-      // Right Leg
-      drawPixelRect(ctx, x + 13, y + 24 - step, 6, 6, legColor)
-      drawPixelRect(ctx, x + 13, y + 30 - step, 7, 3, shoeColor)
-    } else {
-      drawPixelRect(ctx, x + 5, y + 24, 6, 7, legColor)
-      drawPixelRect(ctx, x + 5, y + 31, 7, 3, shoeColor)
-      drawPixelRect(ctx, x + 13, y + 24, 6, 7, legColor)
-      drawPixelRect(ctx, x + 13, y + 31, 7, 3, shoeColor)
+      ctx.globalAlpha = 0.3
     }
 
-    // Torso (Detailed Jacket)
-    drawPixelRect(ctx, x + 3, y + 10 + walkOffset, 18, 16, bodyColor)
-    // Jacket Shading/Detail
-    drawPixelRect(ctx, x + 3, y + 10 + walkOffset, 2, 16, 'rgba(0,0,0,0.2)') // Side shadow
-    drawPixelRect(ctx, x + 4, y + 10 + walkOffset, 16, 2, jacketHighlight) // Top highlight
-    drawPixelRect(ctx, x + 11, y + 12 + walkOffset, 2, 14, '#1a1a20') // Zipper/Center line
-    
-    // Head - With shading
-    drawPixelRect(ctx, x + 6, y + 2 + (walkOffset * 0.6), 12, 12, skinColor)
-    drawPixelRect(ctx, x + 6, y + 10 + (walkOffset * 0.6), 12, 4, skinShadow) // Chin shadow
-    
-    // Hair - More volume
-    drawPixelRect(ctx, x + 5, y + 0 + (walkOffset * 0.6), 14, 6, hairColor)
-    drawPixelRect(ctx, x + 4, y + 2 + (walkOffset * 0.6), 2, 6, hairColor)
-    drawPixelRect(ctx, x + 18, y + 2 + (walkOffset * 0.6), 2, 6, hairColor)
-    
-    // Eyes - With blink logic
-    const isBlinking = frame % 200 < 10
-    if (player.direction !== 'up' && !isBlinking) {
-      const eyeColor = player.sanity < 35 ? '#ff1a1a' : '#1a1a1a'
-      drawPixelRect(ctx, x + 8, y + 8 + (walkOffset * 0.6), 2, 2, eyeColor)
-      drawPixelRect(ctx, x + 14, y + 8 + (walkOffset * 0.6), 2, 2, eyeColor)
-      
-      if (player.sanity < 20) {
-        // Crazed look
-        ctx.fillStyle = 'rgba(255, 0, 0, 0.2)'
-        ctx.fillRect(x + 6, y + 7 + (walkOffset * 0.6), 12, 4)
-      }
-    }
-    
-    // Flashlight held in hand
+    const bodyColor = player.isSprinting ? '#4a3a3a' : '#2d2d3a'
+    const skinColor = '#e8c4a0'
+    const hairColor = '#1a1a1a'
+
+    drawEntityShadow(ctx, x + 12, y + 30, 13, 5, player.isSprinting ? 0.42 : 0.32)
+
     if (flashlightActive) {
-      const { x: fx, y: fy } = getFlashlightOrigin(player)
-      ctx.save()
-      ctx.shadowColor = 'rgba(255, 240, 180, 0.6)'
-      ctx.shadowBlur = 12
-      // Flashlight body
-      drawPixelRect(ctx, fx - 3, fy - 1 + walkOffset, 6, 5, '#4b5563')
-      drawPixelRect(ctx, fx - 1, fy - 1 + walkOffset, 4, 5, '#64748b')
-      // Lens glow
-      ctx.fillStyle = '#fff4b5'
-      ctx.fillRect(fx, fy + walkOffset, 3, 3)
-      ctx.restore()
+      ctx.strokeStyle = 'rgba(255, 244, 200, 0.45)'
+      ctx.lineWidth = 1
+      ctx.strokeRect(x + 3, y + 1, 18, 30)
     }
-    
+
+    const walkOffset = player.isMoving ? Math.sin(animFrame * Math.PI / 2) * 2 : 0
+
+    // Body
+    drawPixelRect(ctx, x + 4, y + 12 + walkOffset, 16, 14, bodyColor)
+
+    // Head
+    drawPixelRect(ctx, x + 6, y + 2, 12, 12, skinColor)
+
+    // Hair
+    drawPixelRect(ctx, x + 6, y + 2, 12, 4, hairColor)
+
+    // Eyes
+    ctx.fillStyle = '#1a1a1a'
+    if (player.direction !== 'up') {
+      drawPixelRect(ctx, x + 8, y + 7, 2, 2, '#1a1a1a')
+      drawPixelRect(ctx, x + 14, y + 7, 2, 2, '#1a1a1a')
+    } else {
+      drawPixelRect(ctx, x + 6, y + 2, 12, 10, hairColor)
+    }
+
+    // Legs
+    if (player.isMoving) {
+      const legOffset = Math.sin(animFrame * Math.PI) * 3
+      ctx.fillStyle = '#1a1a2e'
+      ctx.fillRect(x + 5, y + 24 - (animFrame % 2 === 0 ? legOffset : -legOffset), 5, 8)
+      ctx.fillRect(x + 14, y + 24 + (animFrame % 2 === 0 ? legOffset : -legOffset), 5, 8)
+    } else {
+      drawPixelRect(ctx, x + 5, y + 24, 5, 8, '#1a1a2e')
+      drawPixelRect(ctx, x + 14, y + 24, 5, 8, '#1a1a2e')
+    }
+
+    if (flashlightActive) {
+      const { x: flashlightX, y: flashlightY } = getFlashlightOrigin(player)
+      ctx.shadowColor = 'rgba(255, 240, 180, 0.85)'
+      ctx.shadowBlur = 8
+      drawPixelRect(ctx, flashlightX - 2, flashlightY - 1, 4, 3, '#9ca3af')
+      drawPixelRect(ctx, flashlightX + 1, flashlightY - 1, 2, 3, '#fff4b5')
+      ctx.shadowBlur = 0
+    }
+
     ctx.globalAlpha = 1.0
   }, [drawEntityShadow, drawPixelRect, getFlashlightOrigin, level.isDark, level.lightsOn])
 
+  // Draw enemy sprite
   const drawEnemy = useCallback((ctx: CanvasRenderingContext2D, enemy: Enemy, frame: number) => {
     const { x, y } = enemy.position
-    const t = frame * 0.1
-    
+
+    drawEntityShadow(ctx, x + enemy.width / 2, y + enemy.height - 2, enemy.width / 2.1, 5, enemy.behaviorState === 'chase' ? 0.52 : 0.38)
+
     if (enemy.type === 'operator') {
-      // Tall, glitched, terrifying figure
-      const glitchX = Math.sin(t * 2) * 3 * (Math.random() > 0.8 ? 2 : 0.5)
-      ctx.save()
-      ctx.translate(glitchX, 0)
-      
-      // Main silhouette (Deepest black)
-      ctx.fillStyle = '#020202'
-      ctx.fillRect(x + 5, y, enemy.width - 10, enemy.height)
-      
-      // Corruption particles
-      for (let i = 0; i < 8; i++) {
-        const px = x + hashNumber(i + t) * enemy.width
-        const py = y + hashNumber(i + t + 5) * enemy.height
-        const size = 1 + hashNumber(i) * 3
-        ctx.fillStyle = Math.random() > 0.7 ? '#ff0000' : '#ffffff33'
-        ctx.fillRect(px, py, size, size)
+      const glitchOffset = Math.random() * 4 - 2
+
+      for (let i = 0; i < enemy.height; i += 4) {
+        const offsetX = (Math.random() - 0.5) * glitchOffset
+        const alpha = 0.5 + Math.random() * 0.5
+        ctx.fillStyle = `rgba(255, 50, 50, ${alpha})`
+        ctx.fillRect(x + offsetX, y + i, enemy.width, 4)
       }
 
-      // Suit detail (slightly lighter black/grey)
-      ctx.fillStyle = '#0a0a0a'
-      ctx.fillRect(x + 7, y + 15, enemy.width - 14, enemy.height - 15)
-      
-      // Red glowing tie/core
-      const corePulse = 0.4 + Math.sin(t * 1.5) * 0.3
-      ctx.fillStyle = `rgba(200, 0, 0, ${corePulse})`
-      ctx.fillRect(x + enemy.width / 2 - 2, y + 18, 4, 12)
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.8)'
+      ctx.fillRect(x + 8, y + 4, enemy.width - 16, 16)
 
-      // Eyes - Piercing red
-      const eyeGlow = 0.7 + Math.sin(t * 3) * 0.3
-      ctx.shadowColor = '#ff0000'
-      ctx.shadowBlur = 20 * eyeGlow
       ctx.fillStyle = '#ff0000'
-      ctx.fillRect(x + 10, y + 7, 5, 2)
-      ctx.fillRect(x + enemy.width - 15, y + 7, 5, 2)
-      
-      // Static distortion lines
-      ctx.strokeStyle = `rgba(255, 255, 255, ${0.1 * Math.random()})`
+      ctx.shadowColor = '#ff0000'
+      ctx.shadowBlur = 10
+      ctx.fillRect(x + 12 + Math.sin(frame * 0.1) * 2, y + 10, 6, 4)
+      ctx.fillRect(x + enemy.width - 18 + Math.sin(frame * 0.1) * 2, y + 10, 6, 4)
+      ctx.shadowBlur = 0
+
+      ctx.strokeStyle = `rgba(255, 255, 255, ${0.2 + Math.random() * 0.3})`
       ctx.lineWidth = 1
-      for (let i = 0; i < 4; i++) {
-        const ly = y + (i * 12 + t * 10) % enemy.height
-        ctx.beginPath(); ctx.moveTo(x - 5, ly); ctx.lineTo(x + enemy.width + 5, ly); ctx.stroke()
-      }
-      
-      ctx.restore()
-    } else if (enemy.type === 'echo') {
-      // Ghostly, translucent, trailing
-      const alpha = 0.25 + Math.sin(t * 0.8) * 0.15
-      ctx.save()
-      
-      // Motion Blur / Echoes
-      for (let i = 3; i > 0; i--) {
-        const ox = Math.sin(t - i * 0.2) * 8
-        ctx.globalAlpha = alpha / (i + 1)
-        ctx.fillStyle = '#94a3b8'
+      for (let i = 0; i < 3; i++) {
+        const lineY = y + Math.random() * enemy.height
         ctx.beginPath()
-        ctx.arc(x + enemy.width / 2 + ox, y + 12, 10, 0, Math.PI * 2)
-        ctx.fill()
-        ctx.fillRect(x + 4 + ox, y + 12, enemy.width - 8, enemy.height - 12)
+        ctx.moveTo(x, lineY)
+        ctx.lineTo(x + enemy.width, lineY)
+        ctx.stroke()
+      }
+    } else if (enemy.type === 'echo') {
+      const alpha = 0.4 + Math.sin(frame * 0.1) * 0.2
+
+      ctx.fillStyle = `rgba(100, 150, 200, ${alpha})`
+      ctx.fillRect(x + 2, y + 8, enemy.width - 4, enemy.height - 12)
+
+      ctx.fillStyle = `rgba(150, 180, 220, ${alpha})`
+      ctx.beginPath()
+      ctx.arc(x + enemy.width / 2, y + 8, 8, 0, Math.PI * 2)
+      ctx.fill()
+
+      ctx.fillStyle = `rgba(0, 0, 0, ${alpha + 0.3})`
+      ctx.fillRect(x + 6, y + 5, 4, 4)
+      ctx.fillRect(x + enemy.width - 10, y + 5, 4, 4)
+
+      ctx.fillStyle = `rgba(100, 150, 200, ${alpha * 0.5})`
+      for (let i = 0; i < enemy.width; i += 4) {
+        const waveOffset = Math.sin((frame + i) * 0.2) * 4
+        ctx.fillRect(x + i, y + enemy.height - 8 + waveOffset, 4, 8)
+      }
+    } else if (enemy.type === 'shadow') {
+      const pulseSize = Math.sin(frame * 0.15) * 2
+
+      ctx.fillStyle = 'rgba(10, 10, 20, 0.9)'
+      ctx.beginPath()
+      ctx.ellipse(x + enemy.width / 2, y + enemy.height / 2,
+        enemy.width / 2 + pulseSize, enemy.height / 2 + pulseSize, 0, 0, Math.PI * 2)
+      ctx.fill()
+
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.95)'
+      ctx.beginPath()
+      ctx.ellipse(x + enemy.width / 2, y + enemy.height / 2,
+        enemy.width / 3, enemy.height / 3, 0, 0, Math.PI * 2)
+      ctx.fill()
+
+      ctx.strokeStyle = 'rgba(10, 10, 20, 0.7)'
+      ctx.lineWidth = 3
+      for (let i = 0; i < 4; i++) {
+        const angle = (i / 4) * Math.PI * 2 + frame * 0.05
+        const length = 15 + Math.sin(frame * 0.1 + i) * 5
+        ctx.beginPath()
+        ctx.moveTo(x + enemy.width / 2, y + enemy.height / 2)
+        ctx.lineTo(
+          x + enemy.width / 2 + Math.cos(angle) * length,
+          y + enemy.height / 2 + Math.sin(angle) * length
+        )
+        ctx.stroke()
       }
 
-      // Main body
-      ctx.globalAlpha = alpha + 0.1
-      ctx.fillStyle = '#cbd5e1'
-      ctx.beginPath(); ctx.arc(x + enemy.width / 2, y + 12, 11, 0, Math.PI * 2); ctx.fill()
-      ctx.fillRect(x + 3, y + 12, enemy.width - 6, enemy.height - 12)
-      
-      // Hollow eyes
-      ctx.fillStyle = '#0f172a'
-      ctx.beginPath(); ctx.arc(x + 10, y + 11, 3, 0, Math.PI * 2); ctx.fill()
-      ctx.beginPath(); ctx.arc(x + enemy.width - 10, y + 11, 3, 0, Math.PI * 2); ctx.fill()
-      
-      ctx.restore()
-    } else if (enemy.type === 'shadow') {
-      // Shifting void, dark blue/purple
-      const pulse = 1 + Math.sin(t * 1.2) * 0.08
-      ctx.save()
-      ctx.translate(x + enemy.width / 2, y + enemy.height / 2)
-      ctx.scale(pulse, pulse)
-      
-      // Outer aura
-      const grad = ctx.createRadialGradient(0, 0, 0, 0, 0, enemy.width / 2 + 10)
-      grad.addColorStop(0, '#020617')
-      grad.addColorStop(0.5, '#1e1b4b')
-      grad.addColorStop(1, 'transparent')
-      
-      ctx.fillStyle = grad
-      ctx.beginPath(); ctx.arc(0, 0, enemy.width / 2 + 10, 0, Math.PI * 2); ctx.fill()
-      
-      // Inner shifting patterns (dithering-like)
-      ctx.fillStyle = '#312e81'
-      for (let i = 0; i < 12; i++) {
-        const ang = t * 2 + i * (Math.PI / 6)
-        const d = (Math.sin(t + i) * 0.5 + 0.5) * (enemy.width / 3)
-        ctx.fillRect(Math.cos(ang) * d - 1, Math.sin(ang) * d - 1, 3, 3)
+      ctx.fillStyle = 'rgba(255, 255, 255, 0.9)'
+      ctx.fillRect(x + 6, y + enemy.height / 2 - 4, 4, 3)
+      ctx.fillRect(x + enemy.width - 10, y + enemy.height / 2 - 4, 4, 3)
+    } else if (enemy.type === 'stalker') {
+      // Stalker - dark hooded figure
+      const breathe = Math.sin(frame * 0.08) * 1
+
+      // Cloak
+      ctx.fillStyle = '#0a0a0f'
+      ctx.beginPath()
+      ctx.moveTo(x + enemy.width / 2, y + 4)
+      ctx.lineTo(x, y + enemy.height)
+      ctx.lineTo(x + enemy.width, y + enemy.height)
+      ctx.closePath()
+      ctx.fill()
+
+      // Hood
+      ctx.fillStyle = '#050508'
+      ctx.beginPath()
+      ctx.arc(x + enemy.width / 2, y + 12 + breathe, 12, 0, Math.PI * 2)
+      ctx.fill()
+
+      // Glowing eyes in hood
+      if (enemy.behaviorState === 'chase') {
+        ctx.fillStyle = '#ff0000'
+        ctx.shadowColor = '#ff0000'
+        ctx.shadowBlur = 8
+      } else {
+        ctx.fillStyle = '#ffcc00'
+        ctx.shadowColor = '#ffcc00'
+        ctx.shadowBlur = 5
       }
-      
-      // Glowing white pin-prick eyes
-      ctx.fillStyle = '#ffffff'
-      ctx.shadowColor = '#ffffff'
-      ctx.shadowBlur = 8
-      ctx.fillRect(-6, -2, 2, 2)
-      ctx.fillRect(4, -2, 2, 2)
-      
-      ctx.restore()
+      ctx.fillRect(x + 10, y + 10 + breathe, 3, 2)
+      ctx.fillRect(x + enemy.width - 13, y + 10 + breathe, 3, 2)
+      ctx.shadowBlur = 0
     }
-  }, [drawEntityShadow, drawPixelRect])
+  }, [drawEntityShadow])
 
   // Draw collectible
   const drawCollectible = useCallback((ctx: CanvasRenderingContext2D, collectible: Collectible, frame: number) => {
     if (collectible.collected || collectible.hidden) return
-    
+
     const { x, y } = collectible.position
     const floatOffset = Math.sin(frame * 0.1) * 3
     const glowPulse = 0.5 + Math.sin(frame * 0.15) * 0.3
-    
+
     if (collectible.type === 'vhs_tape') {
       const tapeY = y + floatOffset
-      
+
       ctx.shadowColor = '#ff3333'
       ctx.shadowBlur = 10 * glowPulse
-      
+
       ctx.fillStyle = '#1a1a1a'
       ctx.fillRect(x, tapeY, 24, 16)
-      
+
       ctx.fillStyle = '#ff3333'
       ctx.fillRect(x + 2, tapeY + 2, 20, 8)
-      
+
       ctx.fillStyle = '#cc0000'
       ctx.fillRect(x + 8, tapeY + 12, 8, 4)
-      
+
       ctx.fillStyle = '#333'
       ctx.beginPath()
       ctx.arc(x + 8, tapeY + 8, 4, 0, Math.PI * 2)
       ctx.arc(x + 16, tapeY + 8, 4, 0, Math.PI * 2)
       ctx.fill()
-      
+
       ctx.shadowBlur = 0
     } else if (collectible.type === 'memory_fragment') {
       ctx.shadowColor = '#00ffff'
       ctx.shadowBlur = 15 * glowPulse
-      
+
       ctx.fillStyle = `rgba(0, 255, 255, ${glowPulse})`
       ctx.beginPath()
       ctx.moveTo(x + 10, y + floatOffset)
@@ -735,31 +642,31 @@ export function GameRenderer({ level, player, glitchIntensity, showVHSEffect, va
       ctx.lineTo(x, y + 10 + floatOffset)
       ctx.closePath()
       ctx.fill()
-      
+
       ctx.shadowBlur = 0
     } else if (collectible.type === 'key' || collectible.type === 'fuse') {
       ctx.shadowColor = '#ffd700'
       ctx.shadowBlur = 8 * glowPulse
-      
+
       ctx.fillStyle = collectible.type === 'fuse' ? '#ff8800' : '#ffd700'
       ctx.fillRect(x + 6, y + floatOffset, 4, 12)
       ctx.fillRect(x + 2, y + floatOffset, 12, 4)
-      
+
       if (collectible.type === 'key') {
         ctx.fillRect(x + 8, y + 8 + floatOffset, 6, 3)
         ctx.fillRect(x + 8, y + 14 + floatOffset, 6, 3)
       }
-      
+
       ctx.shadowBlur = 0
     } else if (collectible.type === 'document' || collectible.type === 'code_piece') {
       ctx.fillStyle = '#f5f5dc'
       ctx.fillRect(x, y + floatOffset, 16, 20)
-      
+
       ctx.fillStyle = '#333'
       for (let i = 0; i < 4; i++) {
         ctx.fillRect(x + 2, y + 4 + i * 4 + floatOffset, 12, 1)
       }
-      
+
       // Red mark for important documents
       ctx.fillStyle = '#cc0000'
       ctx.fillRect(x + 12, y + floatOffset, 4, 4)
@@ -769,7 +676,7 @@ export function GameRenderer({ level, player, glitchIntensity, showVHSEffect, va
   // Draw obstacle
   const drawObstacle = useCallback((ctx: CanvasRenderingContext2D, obstacle: Obstacle, frame: number) => {
     const { x, y } = obstacle.position
-    
+
     if (obstacle.type === 'wall') {
       const wallGradient = ctx.createLinearGradient(x, y, x + obstacle.width, y + obstacle.height)
       wallGradient.addColorStop(0, '#202431')
@@ -812,10 +719,10 @@ export function GameRenderer({ level, player, glitchIntensity, showVHSEffect, va
       furnitureGradient.addColorStop(1, '#171923')
       ctx.fillStyle = furnitureGradient
       ctx.fillRect(x, y, obstacle.width, obstacle.height)
-      
+
       ctx.fillStyle = 'rgba(165, 170, 185, 0.14)'
       ctx.fillRect(x + 2, y + 2, obstacle.width - 4, 3)
-      
+
       ctx.fillStyle = 'rgba(0, 0, 0, 0.35)'
       ctx.fillRect(x, y + obstacle.height - 5, obstacle.width, 5)
       ctx.fillRect(x + obstacle.width - 4, y + 4, 4, obstacle.height - 4)
@@ -832,7 +739,7 @@ export function GameRenderer({ level, player, glitchIntensity, showVHSEffect, va
         const oh = obstacle.height * (0.6 + hashNumber(seed + 2) * 0.4)
         ctx.fillRect(ox, oy, ow, oh)
       }
-      
+
       ctx.fillStyle = '#0a0a0f'
       ctx.fillRect(x + obstacle.width / 4, y + obstacle.height / 3, obstacle.width / 2, obstacle.height / 3)
     } else if (obstacle.type === 'door') {
@@ -848,14 +755,14 @@ export function GameRenderer({ level, player, glitchIntensity, showVHSEffect, va
         doorGradient.addColorStop(1, '#241712')
         ctx.fillStyle = doorGradient
         ctx.fillRect(x, y, obstacle.width, obstacle.height)
-        
+
         ctx.fillStyle = 'rgba(255, 165, 120, 0.12)'
         ctx.fillRect(x + 4, y + 4, obstacle.width - 8, 2)
 
         ctx.strokeStyle = '#130b08'
         ctx.lineWidth = 3
         ctx.strokeRect(x, y, obstacle.width, obstacle.height)
-        
+
         // Lock indicator
         if (obstacle.requiresKey || obstacle.requiresCode) {
           ctx.fillStyle = '#cc0000'
@@ -873,14 +780,14 @@ export function GameRenderer({ level, player, glitchIntensity, showVHSEffect, va
       // Dumpster / hiding spot
       ctx.fillStyle = '#2a3a2a'
       ctx.fillRect(x, y, obstacle.width, obstacle.height)
-      
+
       ctx.fillStyle = '#1a2a1a'
       ctx.fillRect(x + 5, y + 5, obstacle.width - 10, obstacle.height - 15)
-      
+
       // Lid
       ctx.fillStyle = '#3a4a3a'
       ctx.fillRect(x - 3, y - 5, obstacle.width + 6, 8)
-      
+
       // "HIDE" indicator
       ctx.fillStyle = '#00ff00'
       ctx.font = '8px monospace'
@@ -892,12 +799,12 @@ export function GameRenderer({ level, player, glitchIntensity, showVHSEffect, va
   const drawSwitch = useCallback((ctx: CanvasRenderingContext2D, switchObj: Switch, frame: number, valveValue?: number) => {
     const { x, y } = switchObj.position
     const floatOffset = Math.sin(frame * 0.08) * 2
-    
+
     if (switchObj.type === 'lever') {
       // Lever base
       ctx.fillStyle = '#3a3a4a'
       ctx.fillRect(x, y + 20, switchObj.width, 20)
-      
+
       // Lever arm
       ctx.fillStyle = switchObj.isActivated ? '#00ff00' : '#ff4444'
       ctx.save()
@@ -905,7 +812,7 @@ export function GameRenderer({ level, player, glitchIntensity, showVHSEffect, va
       ctx.rotate(switchObj.isActivated ? -0.5 : 0.5)
       ctx.fillRect(-3, -25, 6, 30)
       ctx.restore()
-      
+
       // Lever ball
       ctx.fillStyle = switchObj.isActivated ? '#00cc00' : '#cc0000'
       ctx.beginPath()
@@ -917,7 +824,7 @@ export function GameRenderer({ level, player, glitchIntensity, showVHSEffect, va
       ctx.beginPath()
       ctx.arc(x + switchObj.width / 2, y + switchObj.height / 2, switchObj.width / 2, 0, Math.PI * 2)
       ctx.fill()
-      
+
       // Glow when activated
       if (switchObj.isActivated) {
         ctx.fillStyle = '#00ffff'
@@ -930,7 +837,7 @@ export function GameRenderer({ level, player, glitchIntensity, showVHSEffect, va
       ctx.arc(x + switchObj.width / 2, y + switchObj.height / 2 + floatOffset, switchObj.width / 3, 0, Math.PI * 2)
       ctx.fill()
       ctx.shadowBlur = 0
-      
+
       // Memory number
       ctx.fillStyle = '#ffffff'
       ctx.font = 'bold 14px monospace'
@@ -940,11 +847,11 @@ export function GameRenderer({ level, player, glitchIntensity, showVHSEffect, va
       // Keypad
       ctx.fillStyle = '#1a1a2a'
       ctx.fillRect(x, y, switchObj.width, switchObj.height)
-      
+
       // Screen
       ctx.fillStyle = '#0a2010'
       ctx.fillRect(x + 3, y + 3, switchObj.width - 6, 15)
-      
+
       // Keys
       ctx.fillStyle = '#3a3a4a'
       for (let i = 0; i < 3; i++) {
@@ -952,7 +859,7 @@ export function GameRenderer({ level, player, glitchIntensity, showVHSEffect, va
           ctx.fillRect(x + 4 + i * 8, y + 22 + j * 6, 6, 5)
         }
       }
-      
+
       // Interact hint
       ctx.fillStyle = '#ffcc00'
       ctx.font = '8px monospace'
@@ -964,7 +871,7 @@ export function GameRenderer({ level, player, glitchIntensity, showVHSEffect, va
       ctx.beginPath()
       ctx.arc(x + switchObj.width / 2, y + switchObj.height / 2, 15, 0, Math.PI * 2)
       ctx.stroke()
-      
+
       // Spokes
       for (let i = 0; i < 4; i++) {
         const angle = (i / 4) * Math.PI * 2
@@ -976,13 +883,13 @@ export function GameRenderer({ level, player, glitchIntensity, showVHSEffect, va
         )
         ctx.stroke()
       }
-      
+
       // Center with value
       ctx.fillStyle = '#2a2a3a'
       ctx.beginPath()
       ctx.arc(x + switchObj.width / 2, y + switchObj.height / 2, 8, 0, Math.PI * 2)
       ctx.fill()
-      
+
       // Display value
       ctx.fillStyle = '#00ff00'
       ctx.font = 'bold 12px monospace'
@@ -992,17 +899,17 @@ export function GameRenderer({ level, player, glitchIntensity, showVHSEffect, va
       // Fuse box
       ctx.fillStyle = '#2a2a3a'
       ctx.fillRect(x, y, switchObj.width, switchObj.height)
-      
+
       ctx.strokeStyle = '#ffcc00'
       ctx.lineWidth = 2
       ctx.strokeRect(x + 2, y + 2, switchObj.width - 4, switchObj.height - 4)
-      
+
       // Fuse slots
       for (let i = 0; i < 3; i++) {
         ctx.fillStyle = '#1a1a2a'
         ctx.fillRect(x + 8, y + 10 + i * 15, 24, 10)
       }
-      
+
       ctx.fillStyle = '#ff6600'
       ctx.font = '8px monospace'
       ctx.fillText('FUSE', x + 8, y + switchObj.height + 10)
@@ -1012,7 +919,7 @@ export function GameRenderer({ level, player, glitchIntensity, showVHSEffect, va
   // Draw hazard zone
   const drawHazard = useCallback((ctx: CanvasRenderingContext2D, hazard: HazardZone, frame: number) => {
     const { x, y } = hazard.position
-    
+
     if (!hazard.isActive && hazard.pattern === 'timed') {
       // Show outline when inactive
       ctx.strokeStyle = hazard.type === 'electric' ? 'rgba(0, 150, 255, 0.3)' : 'rgba(255, 100, 0, 0.3)'
@@ -1022,12 +929,12 @@ export function GameRenderer({ level, player, glitchIntensity, showVHSEffect, va
       ctx.setLineDash([])
       return
     }
-    
+
     if (hazard.type === 'electric') {
       // Electric floor
       ctx.fillStyle = 'rgba(0, 150, 255, 0.3)'
       ctx.fillRect(x, y, hazard.width, hazard.height)
-      
+
       // Lightning bolts
       ctx.strokeStyle = `rgba(150, 200, 255, ${0.5 + Math.random() * 0.5})`
       ctx.lineWidth = 2
@@ -1045,7 +952,7 @@ export function GameRenderer({ level, player, glitchIntensity, showVHSEffect, va
         }
         ctx.stroke()
       }
-      
+
       // Sparks
       ctx.fillStyle = '#ffffff'
       for (let i = 0; i < 5; i++) {
@@ -1055,13 +962,13 @@ export function GameRenderer({ level, player, glitchIntensity, showVHSEffect, va
       }
     } else if (hazard.type === 'fire') {
       const fireColors = ['#ff4500', '#ff6600', '#ff8800', '#ffaa00', '#ffcc00']
-      
+
       for (let i = 0; i < hazard.width / 10; i++) {
         const flameHeight = hazard.height * (0.5 + Math.sin(frame * 0.3 + i) * 0.3)
         const flameWidth = 10
         const flameX = x + i * flameWidth
         const colorIndex = (i + Math.floor(frame / 5)) % fireColors.length
-        
+
         ctx.fillStyle = fireColors[colorIndex]
         ctx.beginPath()
         ctx.moveTo(flameX, y + hazard.height)
@@ -1071,7 +978,7 @@ export function GameRenderer({ level, player, glitchIntensity, showVHSEffect, va
         )
         ctx.fill()
       }
-      
+
       ctx.fillStyle = 'rgba(255, 100, 0, 0.3)'
       ctx.beginPath()
       ctx.ellipse(x + hazard.width / 2, y + hazard.height, hazard.width / 2, 10, 0, 0, Math.PI * 2)
@@ -1080,7 +987,7 @@ export function GameRenderer({ level, player, glitchIntensity, showVHSEffect, va
       // Poison gas
       ctx.fillStyle = `rgba(100, 200, 100, ${0.2 + Math.sin(frame * 0.05) * 0.1})`
       ctx.fillRect(x, y, hazard.width, hazard.height)
-      
+
       // Gas particles
       for (let i = 0; i < 10; i++) {
         const px = x + ((frame * 0.5 + i * 50) % hazard.width)
@@ -1097,13 +1004,13 @@ export function GameRenderer({ level, player, glitchIntensity, showVHSEffect, va
   const drawNPC = useCallback((ctx: CanvasRenderingContext2D, npc: NPC, frame: number) => {
     const { x, y } = npc.position
     const breathe = Math.sin(frame * 0.08) * 1
-    
+
     drawEntityShadow(ctx, x + 12, y + 30, 12, 5, 0.3)
-    
+
     let bodyColor = '#4a5568'
     let skinColor = '#e8c4a0'
     let hairColor = '#4a3728'
-    
+
     if (npc.sprite === 'npc_female') {
       bodyColor = '#6b46c1'
       hairColor = '#1a1a1a'
@@ -1111,7 +1018,7 @@ export function GameRenderer({ level, player, glitchIntensity, showVHSEffect, va
       bodyColor = '#48bb78'
       hairColor = '#8b4513'
     }
-    
+
     drawPixelRect(ctx, x + 4, y + 12 + breathe, 16, 14, bodyColor)
     drawPixelRect(ctx, x + 6, y + 2 + breathe, 12, 12, skinColor)
     drawPixelRect(ctx, x + 6, y + 2 + breathe, 12, 4, hairColor)
@@ -1119,7 +1026,7 @@ export function GameRenderer({ level, player, glitchIntensity, showVHSEffect, va
     drawPixelRect(ctx, x + 14, y + 7 + breathe, 2, 2, '#1a1a1a')
     drawPixelRect(ctx, x + 5, y + 24, 5, 8, '#2d3748')
     drawPixelRect(ctx, x + 14, y + 24, 5, 8, '#2d3748')
-    
+
     // Interaction indicator
     ctx.fillStyle = '#ffd700'
     ctx.shadowColor = '#ffd700'
@@ -1138,16 +1045,16 @@ export function GameRenderer({ level, player, glitchIntensity, showVHSEffect, va
   const drawExit = useCallback((ctx: CanvasRenderingContext2D, level: Level, frame: number) => {
     const { x, y } = level.exitPosition
     const pulse = 0.5 + Math.sin(frame * 0.1) * 0.3
-    
+
     // Check if exit is locked
     const puzzle = level.puzzles.find(p => p.id === level.exitUnlockedBy)
     const isLocked = level.exitLocked && (!puzzle || !puzzle.isSolved)
-    
+
     if (isLocked) {
       // Locked exit - red glow
       ctx.fillStyle = `rgba(255, 50, 50, ${pulse * 0.5})`
       ctx.fillRect(x, y, level.exitWidth, level.exitHeight)
-      
+
       // Lock icon
       ctx.fillStyle = '#cc0000'
       ctx.fillRect(x + level.exitWidth / 2 - 8, y + level.exitHeight / 2 - 5, 16, 12)
@@ -1158,13 +1065,13 @@ export function GameRenderer({ level, player, glitchIntensity, showVHSEffect, va
       // Unlocked exit - green glow
       ctx.shadowColor = '#00ff88'
       ctx.shadowBlur = 15 * pulse
-      
+
       ctx.fillStyle = `rgba(0, 255, 136, ${pulse})`
       ctx.fillRect(x, y, level.exitWidth, level.exitHeight)
-      
+
       ctx.fillStyle = `rgba(200, 255, 220, ${pulse * 0.5})`
       ctx.fillRect(x + 5, y + 5, level.exitWidth - 10, level.exitHeight - 10)
-      
+
       // Arrow
       ctx.fillStyle = '#ffffff'
       const arrowY = y + level.exitHeight / 2 + Math.sin(frame * 0.15) * 5
@@ -1174,7 +1081,7 @@ export function GameRenderer({ level, player, glitchIntensity, showVHSEffect, va
       ctx.lineTo(x + level.exitWidth / 2 + 8, arrowY + 5)
       ctx.closePath()
       ctx.fill()
-      
+
       ctx.shadowBlur = 0
     }
   }, [])
@@ -1487,13 +1394,6 @@ export function GameRenderer({ level, player, glitchIntensity, showVHSEffect, va
       // Room depth shadows
       drawMapDepth(ctx, activeObstacles)
 
-      // Draw decorations (behind everything else)
-      if (level.decorations) {
-        for (const decoration of level.decorations) {
-          drawDecoration(ctx, decoration, frame)
-        }
-      }
-
       // Draw hazard zones (behind everything)
       for (const hazard of level.hazardZones) {
         drawHazard(ctx, hazard, frame)
@@ -1563,7 +1463,7 @@ export function GameRenderer({ level, player, glitchIntensity, showVHSEffect, va
         cancelAnimationFrame(animationRef.current)
       }
     }
-  }, [level, player, glitchIntensity, showVHSEffect, valveValues, drawPlayer, drawEnemy, drawCollectible, drawDecoration, drawObstacle, drawSwitch, drawHazard, drawNPC, drawExit, drawFloorTexture, drawMapDepth, drawRedGlowLights, drawParticles, drawEmergencyReveal, drawFogOfWar, drawSceneColorGrade, drawSanityDistortion, drawVignette, drawNoise, drawVHSEffect, getActiveObstacles, getEmergencyLightReveal])
+  }, [level, player, glitchIntensity, showVHSEffect, valveValues, drawPlayer, drawEnemy, drawCollectible, drawObstacle, drawSwitch, drawHazard, drawNPC, drawExit, drawFloorTexture, drawMapDepth, drawRedGlowLights, drawParticles, drawEmergencyReveal, drawFogOfWar, drawSceneColorGrade, drawSanityDistortion, drawVignette, drawNoise, drawVHSEffect, getActiveObstacles, getEmergencyLightReveal])
 
   return (
     <canvas
@@ -1571,7 +1471,7 @@ export function GameRenderer({ level, player, glitchIntensity, showVHSEffect, va
       width={level.width}
       height={level.height}
       className="border-4 border-red-900/50 shadow-2xl shadow-red-900/30"
-      style={{ 
+      style={{
         imageRendering: 'pixelated',
         maxWidth: '100%',
         height: 'auto',
