@@ -183,11 +183,12 @@ export function useGameEngine() {
 
   // Collision detection
   const checkCollision = useCallback((pos1: Position, w1: number, h1: number, pos2: Position, w2: number, h2: number): boolean => {
+    const m = 0.01; // Margin to avoid floating point sticky collisions
     return (
-      pos1.x < pos2.x + w2 &&
-      pos1.x + w1 > pos2.x &&
-      pos1.y < pos2.y + h2 &&
-      pos1.y + h1 > pos2.y
+      pos1.x < pos2.x + w2 - m &&
+      pos1.x + w1 > pos2.x + m &&
+      pos1.y < pos2.y + h2 - m &&
+      pos1.y + h1 > pos2.y + m
     )
   }, [])
 
@@ -206,8 +207,9 @@ export function useGameEngine() {
         return false
       }
     }
-    if (newPos.x < 40 || newPos.x + player.width > level.width - 40 ||
-        newPos.y < 40 || newPos.y + player.height > level.height - 40) {
+    const m = 0.01;
+    if (newPos.x < 40 - m || newPos.x + player.width > level.width - 40 + m ||
+        newPos.y < 40 - m || newPos.y + player.height > level.height - 40 + m) {
       return false
     }
     return true
@@ -242,20 +244,54 @@ export function useGameEngine() {
       }
 
       if (newPlayer.isMoving) {
-        const newPos = { x: newPlayer.position.x + dx, y: newPlayer.position.y + dy }
-        if (isValidPosition(newPlayer, newPos, level)) {
-          newPlayer.position = newPos
-          stuckTimerRef.current = 0
+        const isCurrentlyValid = isValidPosition(newPlayer, newPlayer.position, level)
+
+        if (!isCurrentlyValid) {
+          // Fallback: Si el jugador quedó atrapado dentro de una pared (ej. por un enemigo),
+          // le permitimos moverse para que pueda salir.
+          newPlayer.position = {
+            x: Math.max(40, Math.min(level.width - 40 - newPlayer.width, newPlayer.position.x + dx)),
+            y: Math.max(40, Math.min(level.height - 40 - newPlayer.height, newPlayer.position.y + dy))
+          }
         } else {
-          const hPos = { x: newPlayer.position.x + dx, y: newPlayer.position.y }
-          if (dx !== 0 && isValidPosition(newPlayer, hPos, level)) {
-            newPlayer.position = hPos
-          } else {
-            const vPos = { x: newPlayer.position.x, y: newPlayer.position.y + dy }
-            if (dy !== 0 && isValidPosition(newPlayer, vPos, level)) {
-              newPlayer.position = vPos
+          let finalX = newPlayer.position.x
+          let finalY = newPlayer.position.y
+
+          // Intentar movimiento en X
+          if (dx !== 0) {
+            if (isValidPosition(newPlayer, { x: finalX + dx, y: finalY }, level)) {
+              finalX += dx
+            } else {
+              // Acercarse progresivamente a la pared
+              const stepX = Math.sign(dx)
+              let testX = finalX
+              let steps = Math.ceil(Math.abs(dx))
+              while (steps > 0 && isValidPosition(newPlayer, { x: testX + stepX, y: finalY }, level)) {
+                testX += stepX
+                steps--
+              }
+              finalX = testX
             }
           }
+
+          // Intentar movimiento en Y
+          if (dy !== 0) {
+            if (isValidPosition(newPlayer, { x: finalX, y: finalY + dy }, level)) {
+              finalY += dy
+            } else {
+              // Acercarse progresivamente a la pared
+              const stepY = Math.sign(dy)
+              let testY = finalY
+              let steps = Math.ceil(Math.abs(dy))
+              while (steps > 0 && isValidPosition(newPlayer, { x: finalX, y: testY + stepY }, level)) {
+                testY += stepY
+                steps--
+              }
+              finalY = testY
+            }
+          }
+
+          newPlayer.position = { x: finalX, y: finalY }
         }
       }
 
