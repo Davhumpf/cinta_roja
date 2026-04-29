@@ -198,3 +198,35 @@
 .tape-ribbon {
   background: linear-gradient(90deg, #8b0000, #cc0000, #8b0000);
 }
+
+/* Premium CRT/VHS Effects */
+.text-glow-red {
+  text-shadow: 0 0 5px rgba(239, 68, 68, 0.7), 0 0 10px rgba(239, 68, 68, 0.4);
+}
+
+.text-glow-cyan {
+  text-shadow: 0 0 5px rgba(34, 211, 238, 0.7), 0 0 10px rgba(34, 211, 238, 0.4);
+}
+
+.box-glow-red {
+  box-shadow: 0 0 15px rgba(127, 29, 29, 0.4), inset 0 0 10px rgba(127, 29, 29, 0.2);
+}
+
+.box-glow-cyan {
+  box-shadow: 0 0 15px rgba(8, 145, 178, 0.4), inset 0 0 10px rgba(8, 145, 178, 0.2);
+}
+
+@keyframes scanline {
+  0% { transform: translateY(-100%); }
+  100% { transform: translateY(100%); }
+}
+
+.animate-scanline {
+  animation: scanline 4s linear infinite;
+}
+
+.glass-panel {
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(8px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}

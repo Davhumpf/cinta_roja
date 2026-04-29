@@ -746,6 +746,13 @@ export const levels: Level[] = [
     isCompleted: false,
     deathCount: 0,
     timeSpent: 0,
+    decorations: [
+      { id: 'crack_1', type: 'crack', position: { x: 320, y: 100 }, width: 40, height: 40, opacity: 0.4 },
+      { id: 'poster_1', type: 'poster', position: { x: 400, y: 50 }, width: 30, height: 45, rotation: 5 },
+      { id: 'plant_1', type: 'plant', position: { x: 800, y: 550 }, width: 32, height: 48 },
+      { id: 'blood_1', type: 'blood', position: { x: 350, y: 560 }, width: 50, height: 30, opacity: 0.3 },
+      { id: 'trash_1', type: 'trash', position: { x: 120, y: 600 }, width: 24, height: 16 },
+    ],
   },
   // Level 2 - La Calle Nocturna (Stealth + Code puzzle)
   {
@@ -824,6 +831,14 @@ export const levels: Level[] = [
     isCompleted: false,
     deathCount: 0,
     timeSpent: 0,
+    decorations: [
+      { id: 'crack_street_1', type: 'crack', position: { x: 100, y: 50 }, width: 60, height: 60, opacity: 0.3 },
+      { id: 'blood_street_1', type: 'blood', position: { x: 950, y: 420 }, width: 80, height: 40, opacity: 0.5 },
+      { id: 'poster_street_1', type: 'poster', position: { x: 860, y: 260 }, width: 25, height: 35, rotation: -10 },
+      { id: 'puddle_1', type: 'puddle', position: { x: 300, y: 300 }, width: 120, height: 40, opacity: 0.4 },
+      { id: 'cables_1', type: 'cables', position: { x: 50, y: 700 }, width: 200, height: 20, opacity: 0.6 },
+      { id: 'trash_street_1', type: 'trash', position: { x: 380, y: 130 }, width: 30, height: 20 },
+    ],
   },
   // Level 3 - La Ferreteria (Sequence puzzle)
   {
