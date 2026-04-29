@@ -1725,25 +1725,41 @@ export function GameRenderer({ level, player, glitchIntensity, showVHSEffect, va
       return
     }
 
-    ctx.save()
-    ctx.fillStyle = 'rgba(0, 0, 0, 0.88)'
-    ctx.fillRect(0, 0, level.width, level.height)
+    if (!globalMaskCanvas) {
+      globalMaskCanvas = document.createElement('canvas')
+    }
+    if (globalMaskCanvas.width !== level.width || globalMaskCanvas.height !== level.height) {
+      globalMaskCanvas.width = level.width
+      globalMaskCanvas.height = level.height
+    }
 
-    ctx.globalCompositeOperation = 'destination-out'
-    const revealGradient = ctx.createRadialGradient(
-      playerCenterX,
-      playerCenterY,
-      baseRadius * 0.1,
-      playerCenterX,
-      playerCenterY,
-      baseRadius
-    )
-    revealGradient.addColorStop(0, 'rgba(0, 0, 0, 0.96)')
-    revealGradient.addColorStop(0.62, 'rgba(0, 0, 0, 0.58)')
-    revealGradient.addColorStop(1, 'rgba(0, 0, 0, 0)')
-    ctx.fillStyle = revealGradient
-    ctx.fillRect(playerCenterX - baseRadius, playerCenterY - baseRadius, baseRadius * 2, baseRadius * 2)
-    ctx.restore()
+    const mCtx = globalMaskCanvas.getContext('2d')
+    if (mCtx) {
+      mCtx.globalCompositeOperation = 'source-over'
+      mCtx.clearRect(0, 0, level.width, level.height)
+      mCtx.fillStyle = 'rgba(0, 0, 0, 0.88)'
+      mCtx.fillRect(0, 0, level.width, level.height)
+
+      mCtx.globalCompositeOperation = 'destination-out'
+      const revealGradient = mCtx.createRadialGradient(
+        playerCenterX,
+        playerCenterY,
+        baseRadius * 0.1,
+        playerCenterX,
+        playerCenterY,
+        baseRadius
+      )
+      revealGradient.addColorStop(0, 'rgba(0, 0, 0, 0.96)')
+      revealGradient.addColorStop(0.62, 'rgba(0, 0, 0, 0.58)')
+      revealGradient.addColorStop(1, 'rgba(0, 0, 0, 0)')
+      mCtx.fillStyle = revealGradient
+      mCtx.fillRect(playerCenterX - baseRadius, playerCenterY - baseRadius, baseRadius * 2, baseRadius * 2)
+
+      ctx.save()
+      ctx.globalCompositeOperation = 'source-over'
+      ctx.drawImage(globalMaskCanvas, 0, 0)
+      ctx.restore()
+    }
 
     const edgeGradient = ctx.createRadialGradient(
       playerCenterX,
