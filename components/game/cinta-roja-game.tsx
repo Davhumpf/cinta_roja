@@ -40,6 +40,14 @@ export function CintaRojaGame() {
   const viewportWidth = typeof window !== 'undefined' ? Math.max(420, window.innerWidth - 360) : 900
   const viewportHeight = typeof window !== 'undefined' ? Math.max(360, window.innerHeight - 120) : 640
 
+  const translateX = currentLevel?.width > viewportWidth 
+    ? Math.max(viewportWidth - currentLevel.width, Math.min(0, viewportWidth / 2 - gameState.player.position.x))
+    : 0;
+
+  const translateY = currentLevel?.height > viewportHeight 
+    ? Math.max(viewportHeight - currentLevel.height, Math.min(0, viewportHeight / 2 - gameState.player.position.y))
+    : 0;
+
   return (
     <div className="relative w-full min-h-screen bg-black overflow-hidden">
       {/* Title Screen */}
@@ -67,13 +75,7 @@ export function CintaRojaGame() {
             <div
               style={{
                 position: 'absolute',
-                transform: `translate(${Math.max(
-                  Math.min(currentLevel.width, viewportWidth) / 2 - currentLevel.width / 2,
-                  Math.min(0, viewportWidth / 2 - gameState.player.position.x)
-                )}px, ${Math.max(
-                  Math.min(currentLevel.height, viewportHeight) / 2 - currentLevel.height / 2,
-                  Math.min(0, viewportHeight / 2 - gameState.player.position.y)
-                )}px)`,
+                transform: `translate(${translateX}px, ${translateY}px)`,
                 transition: 'transform 0.1s ease-out',
               }}
             >
