@@ -35,6 +35,8 @@ const rgba = ([r, g, b]: Rgb, alpha: number) => {
   return `rgba(${r}, ${g}, ${b}, ${clamp(alpha, 0, 1)})`
 }
 
+let globalMaskCanvas: HTMLCanvasElement | null = null;
+
 export function GameRenderer({ level, player, glitchIntensity, showVHSEffect, valveValues = {} }: GameRendererProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const animationRef = useRef<number>(0)
@@ -1180,67 +1182,119 @@ export function GameRenderer({ level, player, glitchIntensity, showVHSEffect, va
   // Draw fog of war
   const drawFogOfWar = useCallback((ctx: CanvasRenderingContext2D, player: Player, level: Level, frame: number, emergencyRevealActive: boolean) => {
     if ((!level.fogOfWar && !level.isDark) || level.lightsOn || emergencyRevealActive) return
-    
+
     const playerCenterX = player.position.x + player.width / 2
     const playerCenterY = player.position.y + player.height / 2
     const baseRadius = level.visibilityRadius || 150
 
     if (level.isDark && player.hasFlashlight) {
       const intensity = player.flashlightBroken ? getBrokenFlashlightIntensity(frame) : 1
-      const radius = baseRadius * (0.9 + intensity * 0.3)
-      const beamLength = radius * 1.72
-      const beamSpread = radius * 0.62
+      const radius = baseRadius * (0.88 + intensity * 0.28)
+      const beamLength = radius * 1.68
+      const beamSpread = radius * 0.58
       const flashlight = getFlashlightOrigin(player)
 
+      // --- Step 1: Actively illuminate the scene within flashlight area ---
+      // The scene colors are very dark, so we use 'lighter' to brighten them
       ctx.save()
-      ctx.fillStyle = `rgba(0, 0, 0, ${0.88 + (1 - intensity) * 0.04})`
-      ctx.fillRect(0, 0, level.width, level.height)
+      ctx.globalCompositeOperation = 'lighter'
 
-      ctx.globalCompositeOperation = 'destination-out'
+      // Radial ambient light around the player
+      const ambientGlow = ctx.createRadialGradient(playerCenterX, playerCenterY, 0, playerCenterX, playerCenterY, radius)
+      ambientGlow.addColorStop(0, `rgba(200, 190, 160, ${0.35 * intensity})`)
+      ambientGlow.addColorStop(0.4, `rgba(180, 170, 140, ${0.18 * intensity})`)
+      ambientGlow.addColorStop(0.75, `rgba(150, 140, 120, ${0.06 * intensity})`)
+      ambientGlow.addColorStop(1, 'rgba(0, 0, 0, 0)')
+      ctx.fillStyle = ambientGlow
+      ctx.beginPath()
+      ctx.arc(playerCenterX, playerCenterY, radius, 0, Math.PI * 2)
+      ctx.fill()
 
-      const haloMask = ctx.createRadialGradient(playerCenterX, playerCenterY, 0, playerCenterX, playerCenterY, radius)
-      haloMask.addColorStop(0, `rgba(0, 0, 0, ${0.92 * intensity})`)
-      haloMask.addColorStop(0.4, `rgba(0, 0, 0, ${0.65 * intensity})`)
-      haloMask.addColorStop(0.75, `rgba(0, 0, 0, ${0.28 * intensity})`)
-      haloMask.addColorStop(1, 'rgba(0, 0, 0, 0)')
-      ctx.fillStyle = haloMask
-      ctx.fillRect(playerCenterX - radius, playerCenterY - radius, radius * 2, radius * 2)
-
+      // Cone-shaped flashlight illumination
       ctx.translate(flashlight.x, flashlight.y)
       ctx.rotate(flashlight.angle)
-
-      const coneLayers = [
-        { spread: 1.22, alpha: 0.38 },
-        { spread: 0.85, alpha: 0.62 },
-        { spread: 0.5, alpha: 0.88 },
-      ]
-
-      for (const layer of coneLayers) {
-        const coneGradient = ctx.createLinearGradient(0, 0, beamLength, 0)
-        coneGradient.addColorStop(0, `rgba(0, 0, 0, ${layer.alpha * intensity})`)
-        coneGradient.addColorStop(0.7, `rgba(0, 0, 0, ${layer.alpha * 0.4 * intensity})`)
-        coneGradient.addColorStop(1, 'rgba(0, 0, 0, 0)')
-
-        ctx.fillStyle = coneGradient
-        ctx.beginPath()
-        ctx.moveTo(0, 0)
-        ctx.lineTo(beamLength, -beamSpread * layer.spread)
-        ctx.quadraticCurveTo(beamLength * 1.08, 0, beamLength, beamSpread * layer.spread)
-        ctx.closePath()
-        ctx.fill()
-      }
-
+      const coneBrightness = ctx.createLinearGradient(0, 0, beamLength, 0)
+      coneBrightness.addColorStop(0, `rgba(220, 210, 170, ${0.45 * intensity})`)
+      coneBrightness.addColorStop(0.35, `rgba(200, 190, 150, ${0.3 * intensity})`)
+      coneBrightness.addColorStop(0.7, `rgba(160, 150, 120, ${0.12 * intensity})`)
+      coneBrightness.addColorStop(1, 'rgba(0, 0, 0, 0)')
+      ctx.fillStyle = coneBrightness
+      ctx.beginPath()
+      ctx.moveTo(0, 0)
+      ctx.lineTo(beamLength, -beamSpread * 0.9)
+      ctx.quadraticCurveTo(beamLength * 1.08, 0, beamLength, beamSpread * 0.9)
+      ctx.closePath()
+      ctx.fill()
       ctx.restore()
 
-      drawLight(ctx, flashlight.x, flashlight.y, radius * 0.9, WARM_LIGHT, 0.25 + intensity * 0.15)
+      // --- Step 2: Dark overlay with cutout for fog of war ---
+      if (!globalMaskCanvas) {
+        globalMaskCanvas = document.createElement('canvas')
+      }
+      if (globalMaskCanvas.width !== level.width || globalMaskCanvas.height !== level.height) {
+        globalMaskCanvas.width = level.width
+        globalMaskCanvas.height = level.height
+      }
+
+      const mCtx = globalMaskCanvas.getContext('2d')
+      if (mCtx) {
+        mCtx.globalCompositeOperation = 'source-over'
+        mCtx.clearRect(0, 0, level.width, level.height)
+        mCtx.fillStyle = `rgba(0, 0, 0, ${0.90 + (1 - intensity) * 0.04})`
+        mCtx.fillRect(0, 0, level.width, level.height)
+
+        mCtx.globalCompositeOperation = 'destination-out'
+
+        const haloMask = mCtx.createRadialGradient(playerCenterX, playerCenterY, 0, playerCenterX, playerCenterY, radius)
+        haloMask.addColorStop(0, `rgba(0, 0, 0, ${0.96 * intensity})`)
+        haloMask.addColorStop(0.35, `rgba(0, 0, 0, ${0.75 * intensity})`)
+        haloMask.addColorStop(0.7, `rgba(0, 0, 0, ${0.35 * intensity})`)
+        haloMask.addColorStop(1, 'rgba(0, 0, 0, 0)')
+        mCtx.fillStyle = haloMask
+        mCtx.fillRect(playerCenterX - radius, playerCenterY - radius, radius * 2, radius * 2)
+
+        mCtx.save()
+        mCtx.translate(flashlight.x, flashlight.y)
+        mCtx.rotate(flashlight.angle)
+
+        const coneLayers = [
+          { spread: 1.25, alpha: 0.4 },
+          { spread: 0.88, alpha: 0.7 },
+          { spread: 0.5, alpha: 0.95 },
+        ]
+
+        for (const layer of coneLayers) {
+          const coneGradient = mCtx.createLinearGradient(0, 0, beamLength, 0)
+          coneGradient.addColorStop(0, `rgba(0, 0, 0, ${layer.alpha * intensity})`)
+          coneGradient.addColorStop(0.75, `rgba(0, 0, 0, ${layer.alpha * 0.45 * intensity})`)
+          coneGradient.addColorStop(1, 'rgba(0, 0, 0, 0)')
+
+          mCtx.fillStyle = coneGradient
+          mCtx.beginPath()
+          mCtx.moveTo(0, 0)
+          mCtx.lineTo(beamLength, -beamSpread * layer.spread)
+          mCtx.quadraticCurveTo(beamLength * 1.08, 0, beamLength, beamSpread * layer.spread)
+          mCtx.closePath()
+          mCtx.fill()
+        }
+        mCtx.restore()
+
+        ctx.save()
+        ctx.globalCompositeOperation = 'source-over'
+        ctx.drawImage(globalMaskCanvas, 0, 0)
+        ctx.restore()
+      }
+
+      // --- Step 3: Warm glow on top ---
+      drawLight(ctx, flashlight.x, flashlight.y, radius * 0.88, WARM_LIGHT, 0.24 + intensity * 0.14)
 
       ctx.save()
       ctx.globalCompositeOperation = 'screen'
       ctx.translate(flashlight.x, flashlight.y)
       ctx.rotate(flashlight.angle)
       const beamGlow = ctx.createLinearGradient(0, 0, beamLength, 0)
-      beamGlow.addColorStop(0, rgba(WARM_LIGHT, 0.16 + intensity * 0.1))
-      beamGlow.addColorStop(0.5, rgba(WARM_LIGHT, 0.07 + intensity * 0.04))
+      beamGlow.addColorStop(0, rgba(WARM_LIGHT, 0.15 + intensity * 0.1))
+      beamGlow.addColorStop(0.52, rgba(WARM_LIGHT, 0.065 + intensity * 0.04))
       beamGlow.addColorStop(1, rgba(WARM_LIGHT, 0))
       ctx.fillStyle = beamGlow
       ctx.beginPath()
