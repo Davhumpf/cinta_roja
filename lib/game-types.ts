@@ -5,6 +5,18 @@ export interface Position {
   y: number
 }
 
+export interface Decoration {
+  id: string
+  type: 'plant' | 'poster' | 'blood' | 'crack' | 'cables' | 'trash' | 'puddle' | 'shadow_stain'
+  position: Position
+  width: number
+  height: number
+  rotation?: number
+  opacity?: number
+  scale?: number
+  parallax?: number // For depth effects
+}
+
 export interface Player {
   position: Position
   width: number
@@ -236,6 +248,7 @@ export interface Level {
   lightsOn?: boolean // Lights have been turned on
   darkMazeWalls?: Obstacle[] // Extra walls only visible/active when dark
   requiresLightToExit?: boolean // Must turn on lights to see exit
+  decorations?: Decoration[] // Visual only details
 }
 
 export interface GameState {

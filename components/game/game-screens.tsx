@@ -17,149 +17,120 @@ export function TitleScreen({ onStart, levels, maxUnlockedLevel, onSelectLevel }
   useEffect(() => {
     const interval = setInterval(() => {
       setShowPrompt(prev => !prev)
-    }, 500)
+    }, 600)
     return () => clearInterval(interval)
   }, [])
 
   useEffect(() => {
     const glitchInterval = setInterval(() => {
-      if (Math.random() < 0.1) {
+      if (Math.random() < 0.08) {
         const glitchChars = '░▒▓█▀▄■□'
         let newText = 'CINTA ROJA'
         const glitchPos = Math.floor(Math.random() * newText.length)
         newText = newText.slice(0, glitchPos) + glitchChars[Math.floor(Math.random() * glitchChars.length)] + newText.slice(glitchPos + 1)
         setGlitchText(newText)
-        setTimeout(() => setGlitchText('CINTA ROJA'), 100)
+        setTimeout(() => setGlitchText('CINTA ROJA'), 80)
       }
-    }, 200)
+    }, 300)
     return () => clearInterval(glitchInterval)
   }, [])
 
   return (
-    <div className="relative w-full h-screen bg-black flex flex-col items-center justify-center overflow-hidden">
-      {/* VHS tracking lines */}
-      <div className="absolute inset-0 pointer-events-none">
-        {Array.from({ length: 100 }).map((_, i) => (
-          <div 
-            key={i}
-            className="h-[2px] bg-white/5"
-            style={{ marginTop: i * 8 }}
-          />
-        ))}
-      </div>
-
-      {/* Animated background */}
+    <div className="relative w-full h-screen bg-[#050508] flex flex-col items-center justify-center overflow-hidden font-mono">
+      {/* Dynamic Background Effects */}
+      <div className="absolute inset-0 scanlines opacity-40 pointer-events-none" />
+      <div className="absolute inset-0 animate-scanline bg-gradient-to-b from-transparent via-red-900/5 to-transparent h-1/4 w-full pointer-events-none" />
+      
       <div 
-        className="absolute inset-0 opacity-10"
+        className="absolute inset-0 opacity-[0.03] pointer-events-none"
         style={{
           backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=\'0 0 256 256\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cfilter id=\'noise\'%3E%3CfeTurbulence type=\'fractalNoise\' baseFrequency=\'0.7\' numOctaves=\'4\' stitchTiles=\'stitch\'/%3E%3C/filter%3E%3Crect width=\'100%25\' height=\'100%25\' filter=\'url(%23noise)\'/%3E%3C/svg%3E")',
-          animation: 'noise 0.5s steps(10) infinite',
+          animation: 'noise 0.2s steps(4) infinite',
         }}
       />
 
-      {/* Red glow */}
-      <div className="absolute top-1/3 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[200px] bg-red-600/20 blur-[100px] rounded-full" />
+      {/* Decorative Corner Indicators */}
+      <div className="absolute top-8 left-8 text-red-600/60 text-[10px] tracking-[0.4em] uppercase">
+        <span className="animate-pulse mr-2">●</span> REC_MODE_04
+      </div>
+      <div className="absolute top-8 right-8 text-red-600/60 text-[10px] tracking-[0.4em] uppercase">
+        VHS_SP_00:00:{Math.floor(Math.random() * 60).toString().padStart(2, '0')}
+      </div>
+      <div className="absolute bottom-8 left-8 text-gray-700 text-[9px] tracking-[0.2em] uppercase">
+        system_orfeo_v2.1
+      </div>
+      <div className="absolute bottom-8 right-8 text-gray-700 text-[9px] tracking-[0.2em] uppercase">
+        unreal_memories_inc
+      </div>
 
-      {/* Title */}
-      <div className="relative z-10 text-center">
-        {/* VHS tape icon */}
-        <div className="mb-8 flex justify-center">
-          <div className="relative">
-            <div className="w-32 h-20 bg-gray-900 border-4 border-gray-700 rounded-sm relative">
-              <div className="absolute top-2 left-2 right-2 h-8 bg-red-800 flex items-center justify-center">
-                <span className="text-red-200 text-xs font-mono">REC ●</span>
-              </div>
-              <div className="absolute bottom-2 left-4 w-6 h-6 bg-gray-800 rounded-full border-2 border-gray-600" />
-              <div className="absolute bottom-2 right-4 w-6 h-6 bg-gray-800 rounded-full border-2 border-gray-600" />
-              {/* Red ribbon */}
-              <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 w-16 h-2 bg-red-600" />
-            </div>
+      {/* Main Content */}
+      <div className="relative z-10 text-center px-4">
+        <div className="mb-12 relative inline-block">
+          <div className="absolute -inset-8 bg-red-600/10 blur-[60px] rounded-full animate-pulse" />
+          <h1 
+            className="text-7xl md:text-9xl font-bold text-red-600 tracking-tighter mb-4 select-none"
+            style={{ 
+              textShadow: '0 0 30px rgba(220, 38, 38, 0.6), 0 0 60px rgba(220, 38, 38, 0.3)',
+            }}
+          >
+            {glitchText}
+          </h1>
+          <div className="h-[2px] w-full bg-gradient-to-r from-transparent via-red-600 to-transparent opacity-50" />
+        </div>
+
+        <div className="space-y-6 mb-16">
+          <p className="text-gray-400 text-sm tracking-[0.3em] uppercase opacity-70">
+            Un simulacro de terror psicológico
+          </p>
+          <div className="flex flex-col items-center gap-1">
+            <p className="text-gray-600 text-[10px] tracking-widest uppercase">
+              UCC - CAMPUS PASTO
+            </p>
+            <p className="text-gray-700 text-[9px] tracking-widest">
+              PATIÑO • NARVAEZ • CHACUA • RODRIGUEZ
+            </p>
           </div>
         </div>
 
-        {/* Game title */}
-        <h1 
-          className="text-7xl md:text-9xl font-bold text-red-600 font-mono tracking-wider mb-4"
-          style={{ 
-            textShadow: '0 0 40px rgba(220, 38, 38, 0.8), 0 0 80px rgba(220, 38, 38, 0.4)',
-          }}
-        >
-          {glitchText}
-        </h1>
-
-        <p className="text-gray-500 text-lg font-mono mb-2">
-          Un juego de terror psicológico
-        </p>
-
-        <p className="text-gray-600 text-sm font-mono mb-12">
-          Universidad Cooperativa de Colombia - Campus Pasto
-        </p>
-
-        {/* Start prompt */}
         <button
           onClick={onStart}
-          className="group relative"
+          className="group relative px-12 py-4 overflow-hidden transition-all active:scale-95"
         >
-          <div 
-            className={`text-2xl font-mono tracking-widest transition-opacity duration-300 ${showPrompt ? 'opacity-100' : 'opacity-50'}`}
-            style={{ color: '#ff4444' }}
+          <div className="absolute inset-0 border border-red-600/30 group-hover:border-red-600 transition-colors" />
+          <div className="absolute inset-0 bg-red-600/0 group-hover:bg-red-600/5 transition-colors" />
+          <div className={`text-xl font-bold tracking-[0.3em] transition-opacity duration-300 ${showPrompt ? 'opacity-100' : 'opacity-40'}`} style={{ color: '#ef4444' }}>
+            INICIAR_SESION
+          </div>
+        </button>
+
+        <div className="mt-8">
+          <button
+            onClick={() => setShowLevelSelect(true)}
+            className="text-gray-500 hover:text-red-400 text-[10px] tracking-[0.4em] uppercase transition-colors"
           >
-            ▶ PRESIONA ESPACIO PARA INICIAR ◀
-          </div>
-          <div className="absolute -bottom-8 left-1/2 -translate-x-1/2 text-gray-500 text-sm font-mono">
-            o haz clic aquí
-          </div>
-        </button>
-
-        <button
-          onClick={() => setShowLevelSelect(true)}
-          className="mt-14 border border-red-800/70 px-5 py-2 text-sm font-mono text-red-300 hover:bg-red-900/30 transition-colors"
-        >
-          SELECCIONAR NIVEL
-        </button>
-
-        {/* Credits */}
-        <div className="absolute bottom-8 left-1/2 -translate-x-1/2 text-gray-600 text-xs font-mono text-center">
-          <p>Juan Patiño • Gabriel Narvaez • Edison Chacua • David Rodriguez</p>
-          <p className="mt-1">© 2026</p>
+            [ selecc_nivel ]
+          </button>
         </div>
       </div>
 
-      {/* Corner decorations */}
-      <div className="absolute top-4 left-4 text-red-800 font-mono text-sm">
-        ░░ PLAY ░░
-      </div>
-      <div className="absolute top-4 right-4 text-red-800 font-mono text-sm">
-        ░░ 00:00:00 ░░
-      </div>
-      <div className="absolute bottom-4 left-4 text-red-800 font-mono text-sm">
-        ░░ SP ░░
-      </div>
-      <div className="absolute bottom-4 right-4 text-red-800 font-mono text-sm">
-        ░░ VHS ░░
-      </div>
-
-      <button
-        onClick={() => setShowLevelSelect(true)}
-        className="absolute top-24 right-4 z-10 border border-red-800/70 px-4 py-2 text-xs font-mono tracking-widest text-red-300 hover:bg-red-900/30 transition-colors"
-      >
-        NIVELES
-      </button>
-
+      {/* Level Select Modal */}
       {showLevelSelect && (
-        <div className="absolute inset-0 z-20 bg-black/85 flex items-center justify-center p-4">
-          <div className="w-full max-w-5xl border-2 border-red-800 bg-black p-5 font-mono">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-red-400 text-lg tracking-wider">SELECCIÓN DE NIVEL</h3>
+        <div className="absolute inset-0 z-50 bg-black/95 backdrop-blur-md flex items-center justify-center p-6">
+          <div className="w-full max-w-5xl border border-red-900/50 bg-[#08080a] p-8 relative box-glow-red">
+            <div className="absolute top-0 left-0 w-8 h-8 border-t-2 border-l-2 border-red-600" />
+            <div className="absolute bottom-0 right-0 w-8 h-8 border-b-2 border-r-2 border-red-600" />
+            
+            <div className="flex items-center justify-between mb-10 border-b border-red-900/30 pb-4">
+              <h3 className="text-red-500 text-xl tracking-[0.4em] font-bold uppercase">archivo_de_niveles</h3>
               <button
                 onClick={() => setShowLevelSelect(false)}
-                className="text-gray-400 hover:text-white"
+                className="text-gray-500 hover:text-white transition-colors text-2xl"
               >
                 ✕
               </button>
             </div>
 
-            <div className="grid grid-cols-5 gap-3">
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
               {levels.map((level, index) => {
                 const isLocked = index > maxUnlockedLevel
                 return (
@@ -170,24 +141,19 @@ export function TitleScreen({ onStart, levels, maxUnlockedLevel, onSelectLevel }
                       onSelectLevel(index)
                       setShowLevelSelect(false)
                     }}
-                    className={`aspect-square border p-3 text-left transition-colors ${
+                    className={`group relative aspect-video border p-4 text-left transition-all ${
                       isLocked
-                        ? 'border-gray-800 text-gray-600 cursor-not-allowed'
-                        : 'border-red-800/80 text-gray-200 hover:bg-red-900/30'
+                        ? 'border-gray-900 bg-gray-950/50 text-gray-700 cursor-not-allowed opacity-40'
+                        : 'border-red-900/40 bg-red-950/5 text-gray-200 hover:border-red-500 hover:bg-red-900/10'
                     }`}
                   >
+                    {!isLocked && <div className="absolute top-2 right-2 text-[8px] text-red-500/50 font-bold">READY</div>}
                     <div className="h-full flex flex-col justify-between">
-                      <div className="flex justify-between items-start">
-                        <span className="text-xs tracking-widest">NIVEL {level.id}</span>
-                        <span>{isLocked ? '🔒' : '▶'}</span>
+                      <span className="text-[10px] tracking-widest text-red-700 font-bold">LVL_{level.id.toString().padStart(2, '0')}</span>
+                      <div className="text-sm font-bold tracking-tight uppercase leading-tight group-hover:text-red-400 transition-colors">
+                        {isLocked ? 'Encrypted' : level.name}
                       </div>
-                      <div className="text-sm text-gray-300 leading-tight">{level.name}</div>
                     </div>
-                    {isLocked && (
-                      <div className="text-[10px] text-gray-500 mt-2 leading-tight">
-                        Completa el anterior
-                      </div>
-                    )}
                   </button>
                 )
               })}
@@ -209,43 +175,54 @@ interface PauseScreenProps {
 
 export function PauseScreen({ onResume, onQuit, onOpenLevels, currentLevel, totalTapes }: PauseScreenProps) {
   return (
-    <div className="absolute inset-0 bg-black/90 flex items-center justify-center z-50">
-      <div className="text-center">
-        <h2 
-          className="text-5xl font-bold text-red-600 font-mono tracking-wider mb-8"
-          style={{ textShadow: '0 0 20px rgba(220, 38, 38, 0.5)' }}
-        >
-          ░░ PAUSA ░░
-        </h2>
+    <div className="absolute inset-0 bg-[#050508]/90 backdrop-blur-sm flex items-center justify-center z-50 font-mono">
+      <div className="w-[400px] relative">
+        <div className="absolute -inset-20 bg-red-600/5 blur-[100px] rounded-full animate-pulse" />
+        
+        <div className="relative glass-panel p-8 box-glow-red border-l-4 border-red-600">
+          <div className="absolute -top-4 left-6 bg-red-600 px-4 py-1 text-white text-xs font-bold tracking-[0.4em] uppercase">
+            sistema_pausa
+          </div>
+          
+          <div className="mb-10 space-y-2">
+            <div className="flex justify-between items-center text-[10px] tracking-widest">
+              <span className="text-gray-500 uppercase">estado_actual:</span>
+              <span className="text-red-500 font-bold uppercase animate-pulse">interrumpido</span>
+            </div>
+            <div className="flex justify-between items-center text-[10px] tracking-widest">
+              <span className="text-gray-500 uppercase">nivel_id:</span>
+              <span className="text-gray-200 font-bold uppercase">sector_{currentLevel.toString().padStart(2, '0')}</span>
+            </div>
+            <div className="flex justify-between items-center text-[10px] tracking-widest">
+              <span className="text-gray-500 uppercase">vhs_tapes:</span>
+              <span className="text-gray-200 font-bold uppercase">{totalTapes}/10</span>
+            </div>
+          </div>
 
-        <div className="bg-black/80 border-2 border-red-800 p-6 font-mono mb-8">
-          <div className="text-gray-400 mb-2">Nivel actual: <span className="text-red-400">{currentLevel}</span></div>
-          <div className="text-gray-400">Cintas recolectadas: <span className="text-red-400">{totalTapes}/10</span></div>
+          <div className="space-y-3">
+            <button
+              onClick={onResume}
+              className="w-full bg-red-600 text-white py-4 font-bold tracking-[0.3em] hover:bg-red-500 transition-all uppercase text-sm group"
+            >
+              <span className="mr-2 group-hover:animate-ping inline-block">▶</span> reanudar_ciclo
+            </button>
+            <button
+              onClick={onOpenLevels}
+              className="w-full bg-gray-900 border border-gray-700 text-gray-300 py-4 font-bold tracking-[0.3em] hover:bg-gray-800 hover:text-white transition-all uppercase text-sm"
+            >
+              selecc_sector
+            </button>
+            <button
+              onClick={onQuit}
+              className="w-full bg-transparent border border-red-900/30 text-red-900/60 py-3 font-bold tracking-[0.2em] hover:text-red-500 hover:border-red-500 transition-all uppercase text-[10px]"
+            >
+              abortar_sesion
+            </button>
+          </div>
         </div>
-
-        <div className="space-y-4">
-          <button
-            onClick={onResume}
-            className="block w-64 mx-auto bg-red-900/50 border-2 border-red-700 text-red-100 py-3 px-6 font-mono text-lg hover:bg-red-800/50 transition-colors"
-          >
-            ▶ CONTINUAR
-          </button>
-          <button
-            onClick={onOpenLevels}
-            className="block w-64 mx-auto bg-amber-900/40 border-2 border-amber-700 text-amber-100 py-3 px-6 font-mono text-lg hover:bg-amber-800/40 transition-colors"
-          >
-            ▦ NIVELES
-          </button>
-          <button
-            onClick={onQuit}
-            className="block w-64 mx-auto bg-gray-900/50 border-2 border-gray-700 text-gray-300 py-3 px-6 font-mono text-lg hover:bg-gray-800/50 transition-colors"
-          >
-            ✕ SALIR AL MENÚ
-          </button>
-        </div>
-
-        <p className="text-gray-600 text-sm font-mono mt-8">
-          Presiona ESC o P para continuar
+        
+        <p className="text-center text-[9px] text-gray-700 tracking-[0.3em] mt-8 uppercase">
+          presiona ESC para continuar_
         </p>
       </div>
     </div>
@@ -258,70 +235,57 @@ interface GameOverScreenProps {
 }
 
 export function GameOverScreen({ onRetry, currentLevel }: GameOverScreenProps) {
-  const [glitchIntensity, setGlitchIntensity] = useState(0)
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setGlitchIntensity(Math.random() * 100)
-    }, 100)
-    return () => clearInterval(interval)
-  }, [])
-
   return (
-    <div className="absolute inset-0 bg-black flex items-center justify-center z-50 overflow-hidden">
-      {/* Static noise */}
+    <div className="absolute inset-0 bg-black flex items-center justify-center z-50 overflow-hidden font-mono">
+      {/* Heavy static effect */}
       <div 
-        className="absolute inset-0 opacity-20"
+        className="absolute inset-0 opacity-40 mix-blend-screen pointer-events-none"
         style={{
-          backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=\'0 0 256 256\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cfilter id=\'noise\'%3E%3CfeTurbulence type=\'fractalNoise\' baseFrequency=\'0.9\' numOctaves=\'4\' stitchTiles=\'stitch\'/%3E%3C/filter%3E%3Crect width=\'100%25\' height=\'100%25\' filter=\'url(%23noise)\'/%3E%3C/svg%3E")',
-          animation: 'noise 0.2s steps(10) infinite',
+          backgroundImage: 'url("data:image/svg+xml,%3Csvg viewBox=\'0 0 256 256\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cfilter id=\'noise\'%3E%3CfeTurbulence type=\'fractalNoise\' baseFrequency=\'0.95\' numOctaves=\'5\' stitchTiles=\'stitch\'/%3E%3C/filter%3E%3Crect width=\'100%25\' height=\'100%25\' filter=\'url(%23noise)\'/%3E%3C/svg%3E")',
+          animation: 'noise 0.1s steps(2) infinite',
         }}
       />
+      
+      <div className="absolute inset-0 bg-gradient-to-b from-transparent via-red-950/20 to-black pointer-events-none" />
 
-      {/* Red vignette */}
-      <div 
-        className="absolute inset-0"
-        style={{
-          background: 'radial-gradient(circle, transparent 30%, rgba(100, 0, 0, 0.8) 100%)',
-        }}
-      />
-
-      <div className="text-center relative z-10">
+      <div className="text-center relative z-10 px-6">
+        <div className="mb-2 text-red-900/40 text-[10px] tracking-[0.8em] uppercase animate-pulse">error_fatal_cycle_broken</div>
+        
         <h2 
-          className="text-6xl font-bold text-red-700 font-mono tracking-wider mb-4"
-          style={{ 
-            textShadow: '0 0 30px rgba(200, 0, 0, 0.8)',
-            transform: `translateX(${(Math.random() - 0.5) * glitchIntensity * 0.1}px)`,
-          }}
+          className="text-5xl md:text-7xl font-bold text-red-700 tracking-tighter mb-8 animate-glitch"
+          style={{ textShadow: '0 0 40px rgba(185, 28, 28, 0.6)' }}
         >
-          ░░░ LA CINTA SE DETUVO ░░░
+          SESIÓN TERMINADA
         </h2>
 
-        <p className="text-gray-400 font-mono text-xl mb-2">
-          El ciclo se repite...
-        </p>
-        <p className="text-gray-600 font-mono text-sm mb-8">
-          Muriste en el nivel {currentLevel}
-        </p>
+        <div className="glass-panel py-6 px-10 mb-12 box-glow-red border-red-900/50 max-w-sm mx-auto">
+          <p className="text-gray-400 text-xs tracking-[0.3em] mb-4 uppercase">
+            El ciclo se repite en la oscuridad...
+          </p>
+          <div className="h-[1px] bg-red-900/30 w-full mb-4" />
+          <p className="text-red-600/80 text-[10px] tracking-widest uppercase">
+            Sector fallido: {currentLevel.toString().padStart(2, '0')}
+          </p>
+        </div>
 
         <button
           onClick={onRetry}
-          className="bg-red-900/50 border-2 border-red-700 text-red-100 py-3 px-8 font-mono text-xl hover:bg-red-800/50 transition-colors"
+          className="group relative px-16 py-5 transition-all active:scale-95"
         >
-          ▶ REINICIAR
+          <div className="absolute inset-0 bg-red-700 box-glow-red group-hover:bg-red-600 transition-colors" />
+          <div className="relative text-white font-bold tracking-[0.5em] uppercase text-sm">
+            reiniciar_ciclo
+          </div>
         </button>
 
-        <p className="text-gray-700 text-sm font-mono mt-8">
-          Presiona ESPACIO para reiniciar
+        <p className="text-gray-700 text-[10px] tracking-[0.3em] mt-12 uppercase animate-pulse">
+          presiona espacio para reintentar_
         </p>
-
-        {/* Creepy message */}
-        <p 
-          className="absolute bottom-20 left-1/2 -translate-x-1/2 text-red-900/50 text-xs font-mono"
-          style={{ transform: `translateX(${(Math.random() - 0.5) * 10}px)` }}
-        >
-          ...no puedes escapar de lo que eres...
-        </p>
+      </div>
+      
+      {/* Creepy subliminal flashes */}
+      <div className="absolute bottom-10 left-10 text-[8px] text-red-950 opacity-20 select-none pointer-events-none">
+        01001110 01101111 01110011 00100000 01101111 01101100 01110110 01101001 01100100 01100001 01110011 01110100 01100101
       </div>
     </div>
   )
@@ -338,81 +302,79 @@ export function VictoryScreen({ onRestart, totalTapes, memoriesCount }: VictoryS
 
   useEffect(() => {
     const timers = [
-      setTimeout(() => setShowText(1), 1000),
-      setTimeout(() => setShowText(2), 3000),
-      setTimeout(() => setShowText(3), 5000),
-      setTimeout(() => setShowText(4), 7000),
-      setTimeout(() => setShowText(5), 9000),
+      setTimeout(() => setShowText(1), 1200),
+      setTimeout(() => setShowText(2), 3500),
+      setTimeout(() => setShowText(3), 5500),
+      setTimeout(() => setShowText(4), 7500),
+      setTimeout(() => setShowText(5), 9500),
     ]
     return () => timers.forEach(clearTimeout)
   }, [])
 
   return (
-    <div className="absolute inset-0 bg-black flex items-center justify-center z-50 overflow-hidden">
-      {/* Soft light gradient */}
-      <div 
-        className="absolute inset-0"
-        style={{
-          background: 'radial-gradient(circle at center, rgba(255, 255, 200, 0.05) 0%, transparent 70%)',
-        }}
-      />
+    <div className="absolute inset-0 bg-[#020203] flex items-center justify-center z-50 overflow-hidden font-mono">
+      <div className="absolute inset-0 bg-gradient-to-b from-cyan-950/10 via-transparent to-transparent pointer-events-none" />
+      
+      <div className="text-center relative z-10 max-w-3xl px-8">
+        <div className="space-y-6 mb-16 min-h-[150px]">
+          {showText >= 1 && (
+            <p className="text-gray-400 text-lg tracking-wide animate-fade-in italic">
+              "Adrián cruzó la puerta de luz. El Edificio Orfeo se vació."
+            </p>
+          )}
 
-      <div className="text-center relative z-10 max-w-2xl px-8">
-        {showText >= 1 && (
-          <p className="text-gray-400 font-mono text-lg mb-4 animate-fade-in">
-            Adrián cruzó la puerta de luz.
-          </p>
-        )}
+          {showText >= 2 && (
+            <p className="text-gray-500 text-lg tracking-wide animate-fade-in italic">
+              "Los ecos desaparecieron. Las cintas perdieron todo significado."
+            </p>
+          )}
 
-        {showText >= 2 && (
-          <p className="text-gray-500 font-mono text-lg mb-4 animate-fade-in">
-            El Edificio Orfeo se vació. Los ecos desaparecieron.
-          </p>
-        )}
-
-        {showText >= 3 && (
-          <p className="text-gray-400 font-mono text-lg mb-8 animate-fade-in">
-            Las cintas perdieron todo significado.
-          </p>
-        )}
+          {showText >= 3 && (
+            <h2 className="text-5xl font-bold text-cyan-400/90 tracking-[0.3em] animate-fade-in uppercase py-8" style={{ textShadow: '0 0 30px rgba(34, 211, 238, 0.4)' }}>
+              Finalmente... paz.
+            </h2>
+          )}
+        </div>
 
         {showText >= 4 && (
-          <h2 
-            className="text-5xl font-bold text-amber-200/80 font-mono tracking-wider mb-8 animate-fade-in"
-            style={{ textShadow: '0 0 40px rgba(255, 200, 100, 0.3)' }}
-          >
-            Finalmente... paz.
-          </h2>
-        )}
-
-        {showText >= 5 && (
-          <div className="animate-fade-in">
-            <div className="bg-black/60 border border-gray-700 p-6 font-mono mb-8">
-              <h3 className="text-gray-300 text-lg mb-4">Estadísticas finales</h3>
-              <div className="text-gray-500 space-y-2">
-                <p>Cintas VHS recolectadas: <span className="text-red-400">{totalTapes}/10</span></p>
-                <p>Fragmentos de memoria: <span className="text-cyan-400">{memoriesCount}</span></p>
-                <p>Ciclo completado: <span className="text-green-400">✓</span></p>
+          <div className="animate-fade-in space-y-12">
+            <div className="glass-panel p-10 box-glow-cyan border-cyan-900/30 bg-black/40">
+              <div className="text-cyan-500 text-[10px] tracking-[0.5em] mb-8 font-bold uppercase">informe_final_sesion</div>
+              <div className="grid grid-cols-2 gap-y-6 gap-x-12">
+                <div className="text-left">
+                  <div className="text-[9px] text-gray-500 uppercase tracking-widest mb-1">recoleccion_vhs</div>
+                  <div className="text-2xl text-red-500 font-bold">{totalTapes}/10</div>
+                </div>
+                <div className="text-left">
+                  <div className="text-[9px] text-gray-500 uppercase tracking-widest mb-1">fragmentos_memoria</div>
+                  <div className="text-2xl text-cyan-400 font-bold">{memoriesCount}</div>
+                </div>
+                <div className="text-left">
+                  <div className="text-[9px] text-gray-500 uppercase tracking-widest mb-1">estado_ciclo</div>
+                  <div className="text-sm text-green-500 font-bold uppercase tracking-widest">completo_exitoso</div>
+                </div>
+                <div className="text-left">
+                  <div className="text-[9px] text-gray-500 uppercase tracking-widest mb-1">identidad</div>
+                  <div className="text-sm text-gray-200 font-bold uppercase tracking-widest">adrian_restaurado</div>
+                </div>
               </div>
             </div>
 
-            <p className="text-gray-600 font-mono text-sm mb-8">
-              &ldquo;El verdadero horror no era un asesino externo, sino la imposibilidad de aceptar un trauma enterrado incluso después de la muerte.&rdquo;
-            </p>
+            <div className="flex flex-col items-center gap-8">
+              <button
+                onClick={onRestart}
+                className="group relative px-12 py-4 transition-all active:scale-95"
+              >
+                <div className="absolute inset-0 border border-cyan-500/30 group-hover:border-cyan-500 transition-colors" />
+                <div className="relative text-cyan-400 text-sm font-bold tracking-[0.4em] uppercase group-hover:text-cyan-200">
+                  liberar_sistema
+                </div>
+              </button>
 
-            <button
-              onClick={onRestart}
-              className="bg-gray-900/50 border-2 border-gray-600 text-gray-300 py-3 px-8 font-mono text-lg hover:bg-gray-800/50 transition-colors"
-            >
-              VOLVER AL INICIO
-            </button>
-
-            {/* Credits */}
-            <div className="mt-12 text-gray-600 text-xs font-mono">
-              <p className="text-gray-500 mb-2">CINTA ROJA</p>
-              <p>Juan Patiño • Gabriel Narvaez • Edison Chacua • David Rodriguez</p>
-              <p className="mt-2">Universidad Cooperativa de Colombia - Campus Pasto</p>
-              <p>2026</p>
+              <div className="text-gray-600 text-[9px] tracking-[0.3em] leading-relaxed uppercase opacity-40">
+                CINTA ROJA © 2026<br />
+                un proyecto de terror analógico para la UCC
+              </div>
             </div>
           </div>
         )}
@@ -450,39 +412,25 @@ export function IntroScreen({ dialogue, onAdvance }: { dialogue: { speaker: stri
 
   return (
     <div 
-      className="absolute inset-0 bg-black/95 flex items-center justify-center z-50"
+      className="absolute inset-0 bg-black/98 flex items-center justify-center z-50 font-mono"
       onClick={() => {
-        if (!isTyping) {
-          onAdvance()
-        } else {
-          setTypedText(dialogue.text)
-          setIsTyping(false)
-        }
+        if (!isTyping) onAdvance()
+        else { setTypedText(dialogue.text); setIsTyping(false); }
       }}
     >
-      {/* Scanlines */}
-      <div className="absolute inset-0 pointer-events-none opacity-30">
-        {Array.from({ length: 150 }).map((_, i) => (
-          <div 
-            key={i}
-            className="h-[1px] bg-white/10"
-            style={{ marginTop: i * 4 }}
-          />
-        ))}
-      </div>
-
-      <div className="max-w-2xl px-8 text-center">
-        <div className="text-red-600 font-mono text-sm tracking-widest mb-4">
+      <div className="absolute inset-0 scanlines opacity-20 pointer-events-none" />
+      <div className="max-w-3xl px-12 text-center">
+        <div className="text-red-700 text-[10px] tracking-[0.6em] font-bold uppercase mb-8 animate-pulse">
           {dialogue.speaker}
         </div>
-        <p className="text-gray-200 font-mono text-2xl leading-relaxed">
+        <div className="text-gray-200 text-3xl md:text-4xl font-bold leading-tight tracking-tight min-h-[120px]">
           {typedText}
-          {isTyping && <span className="animate-pulse">▊</span>}
-        </p>
+          {isTyping && <span className="w-4 h-8 bg-red-600 inline-block align-middle ml-2 animate-pulse" />}
+        </div>
         {!isTyping && (
-          <p className="text-gray-600 font-mono text-sm mt-8 animate-pulse">
-            ▶ Presiona E o Enter para continuar
-          </p>
+          <div className="mt-16 text-red-600/40 text-[10px] tracking-[0.4em] uppercase animate-fade-in">
+            [ presiona_enter_para_iniciar_transmision ]
+          </div>
         )}
       </div>
     </div>
