@@ -43,6 +43,13 @@ export interface InventoryItem {
   usesWith?: string // ID of object it can be used with
 }
 
+export interface CollectibleBuff {
+  health?: number
+  sanity?: number
+  stamina?: number
+  speed?: number
+}
+
 export interface Enemy {
   id: string
   type: 'echo' | 'operator' | 'shadow' | 'stalker'
@@ -72,6 +79,7 @@ export interface Collectible {
   collected: boolean
   dialogueId?: string
   inventoryItem?: InventoryItem
+  buff?: CollectibleBuff
   hidden: boolean // Only visible after solving puzzle or using item
   revealedBy?: string // ID of puzzle/switch that reveals it
 }

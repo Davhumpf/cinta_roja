@@ -92,6 +92,31 @@ export const dialogues: Record<string, Dialogue> = {
     speaker: 'Adrian',
     text: 'Tengo que salir. Si esto es real... puedo evitar que algo terrible suceda.',
   },
+  'buff_stamina': {
+    id: 'buff_stamina',
+    speaker: 'Sistema',
+    text: '[POTENCIADOR] Respiracion controlada: recuperas stamina para seguir avanzando.',
+  },
+  'buff_health': {
+    id: 'buff_health',
+    speaker: 'Sistema',
+    text: '[POTENCIADOR] Vendaje improvisado: recuperas salud.',
+  },
+  'buff_sanity': {
+    id: 'buff_sanity',
+    speaker: 'Sistema',
+    text: '[POTENCIADOR] Recuerdo estable: recuperas cordura.',
+  },
+  'buff_speed': {
+    id: 'buff_speed',
+    speaker: 'Sistema',
+    text: '[POTENCIADOR] Adrenalina: Adrian se mueve un poco mas rapido.',
+  },
+  'buff_resilience': {
+    id: 'buff_resilience',
+    speaker: 'Sistema',
+    text: '[POTENCIADOR] Pulso firme: recuperas salud, cordura y stamina.',
+  },
 
   // Level 2 - La Calle Nocturna
   'intro_l2_1': {
@@ -794,6 +819,7 @@ export const levels: Level[] = [
     collectibles: [
       { id: 'clue_code_1', type: 'document', position: { x: 250, y: 200 }, width: 20, height: 24, collected: false, dialogueId: 'code_hint_1', hidden: false },
       { id: 'clue_code_2', type: 'document', position: { x: 750, y: 600 }, width: 20, height: 24, collected: false, dialogueId: 'code_hint_2', hidden: false },
+      { id: 'buff_l2_stamina', type: 'tool', position: { x: 360, y: 180 }, width: 24, height: 24, collected: false, dialogueId: 'buff_stamina', hidden: false, buff: { stamina: 40 } },
       { id: 'tape_2', type: 'vhs_tape', position: { x: 1050, y: 400 }, width: 24, height: 24, collected: false, dialogueId: 'tape_2', hidden: false },
     ],
     npcs: [
@@ -874,6 +900,8 @@ export const levels: Level[] = [
       { id: 'echo_3', type: 'echo', position: { x: 820, y: 260 }, width: 26, height: 34, speed: 1.1, direction: 'down', isActive: true, detectionRadius: 85, patrolPath: [{ x: 820, y: 160 }, { x: 820, y: 520 }], patrolIndex: 0, behaviorState: 'patrol', canHear: true, hearingRadius: 100, stunned: false, stunnedTimer: 0 },
     ],
     collectibles: [
+      { id: 'buff_l3_speed', type: 'tool', position: { x: 210, y: 450 }, width: 24, height: 24, collected: false, dialogueId: 'buff_speed', hidden: false, buff: { speed: 0.15, stamina: 25 } },
+      { id: 'buff_l3_health', type: 'tool', position: { x: 760, y: 610 }, width: 24, height: 24, collected: false, dialogueId: 'buff_health', hidden: false, buff: { health: 25 } },
       { id: 'tape_3', type: 'vhs_tape', position: { x: 850, y: 150 }, width: 24, height: 24, collected: false, dialogueId: 'tape_3', hidden: true, revealedBy: 'sequence_puzzle' },
     ],
     npcs: [
@@ -944,6 +972,8 @@ export const levels: Level[] = [
       { id: 'shadow_bridge_3', type: 'shadow', position: { x: 980, y: 320 }, width: 26, height: 34, speed: 1.7, direction: 'left', isActive: true, detectionRadius: 70, patrolPath: [{ x: 820, y: 320 }, { x: 1220, y: 320 }], patrolIndex: 0, behaviorState: 'patrol', canHear: false, hearingRadius: 0, stunned: false, stunnedTimer: 0 },
     ],
     collectibles: [
+      { id: 'buff_l4_health', type: 'tool', position: { x: 380, y: 250 }, width: 24, height: 24, collected: false, dialogueId: 'buff_health', hidden: false, buff: { health: 30 } },
+      { id: 'buff_l4_stamina', type: 'tool', position: { x: 820, y: 250 }, width: 24, height: 24, collected: false, dialogueId: 'buff_stamina', hidden: false, buff: { stamina: 50 } },
       { id: 'tape_4', type: 'vhs_tape', position: { x: 1200, y: 250 }, width: 24, height: 24, collected: false, dialogueId: 'tape_4', hidden: false },
       { id: 'memory_fragment_1', type: 'memory_fragment', position: { x: 650, y: 300 }, width: 24, height: 24, collected: false, dialogueId: 'memory_1', hidden: false },
     ],
@@ -1028,7 +1058,9 @@ export const levels: Level[] = [
     ],
     collectibles: [
       { id: 'keycard_b1', type: 'key', position: { x: 750, y: 150 }, width: 24, height: 16, collected: false, dialogueId: 'keycard_1', hidden: false, inventoryItem: { id: 'keycard_b1', type: 'key', name: 'Tarjeta B1', description: 'Tarjeta de acceso al nivel B1.' } },
+      { id: 'buff_l5_sanity', type: 'tool', position: { x: 300, y: 230 }, width: 24, height: 24, collected: false, dialogueId: 'buff_sanity', hidden: false, buff: { sanity: 35 } },
       { id: 'keycard_b2', type: 'key', position: { x: 500, y: 450 }, width: 24, height: 16, collected: false, dialogueId: 'keycard_2', hidden: false, inventoryItem: { id: 'keycard_b2', type: 'key', name: 'Tarjeta B2', description: 'Tarjeta de acceso al nivel B2.' } },
+      { id: 'buff_l5_resilience', type: 'tool', position: { x: 720, y: 690 }, width: 24, height: 24, collected: false, dialogueId: 'buff_resilience', hidden: false, buff: { health: 20, sanity: 20, stamina: 35 } },
       { id: 'tape_5', type: 'vhs_tape', position: { x: 900, y: 780 }, width: 24, height: 24, collected: false, dialogueId: 'tape_5', hidden: false },
     ],
     npcs: [
@@ -1096,8 +1128,10 @@ export const levels: Level[] = [
     ],
     collectibles: [
       { id: 'record_1', type: 'document', position: { x: 120, y: 200 }, width: 20, height: 24, collected: false, dialogueId: 'medical_record_1', hidden: false },
+      { id: 'buff_l6_health', type: 'tool', position: { x: 260, y: 520 }, width: 24, height: 24, collected: false, dialogueId: 'buff_health', hidden: false, buff: { health: 35 } },
       { id: 'record_2', type: 'document', position: { x: 550, y: 600 }, width: 20, height: 24, collected: false, dialogueId: 'medical_record_2', hidden: false },
       { id: 'record_3', type: 'document', position: { x: 900, y: 150 }, width: 20, height: 24, collected: false, dialogueId: 'medical_record_3', hidden: false },
+      { id: 'buff_l6_sanity', type: 'tool', position: { x: 760, y: 360 }, width: 24, height: 24, collected: false, dialogueId: 'buff_sanity', hidden: false, buff: { sanity: 30 } },
       { id: 'tape_6', type: 'vhs_tape', position: { x: 1080, y: 450 }, width: 24, height: 24, collected: false, dialogueId: 'tape_6', hidden: false },
       { id: 'memory_fragment_2', type: 'memory_fragment', position: { x: 1080, y: 550 }, width: 24, height: 24, collected: false, dialogueId: 'memory_2', hidden: false },
     ],
@@ -1178,8 +1212,10 @@ export const levels: Level[] = [
     ],
     collectibles: [
       { id: 'clue_logic_1', type: 'document', position: { x: 180, y: 350 }, width: 20, height: 24, collected: false, dialogueId: 'logic_clue_1', hidden: false },
+      { id: 'buff_l7_speed', type: 'tool', position: { x: 500, y: 630 }, width: 24, height: 24, collected: false, dialogueId: 'buff_speed', hidden: false, buff: { speed: 0.1, stamina: 30 } },
       { id: 'clue_logic_2', type: 'document', position: { x: 480, y: 450 }, width: 20, height: 24, collected: false, dialogueId: 'logic_clue_2', hidden: false },
       { id: 'clue_logic_3', type: 'document', position: { x: 780, y: 350 }, width: 20, height: 24, collected: false, dialogueId: 'logic_clue_3', hidden: false },
+      { id: 'buff_l7_sanity', type: 'tool', position: { x: 840, y: 520 }, width: 24, height: 24, collected: false, dialogueId: 'buff_sanity', hidden: false, buff: { sanity: 25 } },
       { id: 'tape_7', type: 'vhs_tape', position: { x: 460, y: 60 }, width: 24, height: 24, collected: false, dialogueId: 'tape_7', hidden: true, revealedBy: 'logic_puzzle' },
     ],
     npcs: [
@@ -1257,7 +1293,9 @@ export const levels: Level[] = [
       { id: 'stalker_5', type: 'stalker', position: { x: 520, y: 220 }, width: 30, height: 38, speed: 1.6, direction: 'down', isActive: true, detectionRadius: 100, patrolPath: [{ x: 520, y: 180 }, { x: 700, y: 180 }, { x: 700, y: 340 }, { x: 520, y: 340 }], patrolIndex: 0, behaviorState: 'patrol', canHear: true, hearingRadius: 125, stunned: false, stunnedTimer: 0 },
     ],
     collectibles: [
+      { id: 'buff_l8_stamina', type: 'tool', position: { x: 350, y: 740 }, width: 24, height: 24, collected: false, dialogueId: 'buff_stamina', hidden: false, buff: { stamina: 60 } },
       { id: 'tape_8', type: 'vhs_tape', position: { x: 580, y: 480 }, width: 24, height: 24, collected: false, dialogueId: 'tape_8', hidden: false },
+      { id: 'buff_l8_resilience', type: 'tool', position: { x: 960, y: 620 }, width: 24, height: 24, collected: false, dialogueId: 'buff_resilience', hidden: false, buff: { health: 25, sanity: 25, stamina: 25 } },
       { id: 'memory_fragment_3', type: 'memory_fragment', position: { x: 1050, y: 200 }, width: 24, height: 24, collected: false, dialogueId: 'memory_3', hidden: false },
     ],
     npcs: [],
@@ -1322,6 +1360,8 @@ export const levels: Level[] = [
       { id: 'orfeo_shadow_1', type: 'shadow', position: { x: 760, y: 560 }, width: 28, height: 36, speed: 1.1, direction: 'down', isActive: true, detectionRadius: 85, patrolPath: [{ x: 760, y: 420 }, { x: 760, y: 760 }], patrolIndex: 0, behaviorState: 'patrol', canHear: false, hearingRadius: 0, stunned: false, stunnedTimer: 0 },
     ],
     collectibles: [
+      { id: 'buff_l9_resilience', type: 'tool', position: { x: 520, y: 620 }, width: 24, height: 24, collected: false, dialogueId: 'buff_resilience', hidden: false, buff: { health: 30, sanity: 30, stamina: 35 } },
+      { id: 'buff_l9_speed', type: 'tool', position: { x: 820, y: 300 }, width: 24, height: 24, collected: false, dialogueId: 'buff_speed', hidden: false, buff: { speed: 0.1, stamina: 20 } },
       { id: 'tape_9', type: 'vhs_tape', position: { x: 500, y: 100 }, width: 24, height: 24, collected: false, dialogueId: 'tape_9', hidden: true, revealedBy: 'memory_puzzle' },
     ],
     npcs: [
@@ -1393,7 +1433,10 @@ export const levels: Level[] = [
       { id: 'truth_shadow_left', type: 'shadow', position: { x: 120, y: 330 }, width: 26, height: 34, speed: 0.8, direction: 'right', isActive: true, detectionRadius: 65, patrolPath: [{ x: 100, y: 330 }, { x: 240, y: 330 }], patrolIndex: 0, behaviorState: 'patrol', canHear: false, hearingRadius: 0, stunned: false, stunnedTimer: 0 },
       { id: 'truth_shadow_right', type: 'shadow', position: { x: 450, y: 330 }, width: 26, height: 34, speed: 0.8, direction: 'left', isActive: true, detectionRadius: 65, patrolPath: [{ x: 360, y: 330 }, { x: 500, y: 330 }], patrolIndex: 0, behaviorState: 'patrol', canHear: false, hearingRadius: 0, stunned: false, stunnedTimer: 0 },
     ],
-    collectibles: [],
+    collectibles: [
+      { id: 'buff_l10_truth', type: 'tool', position: { x: 300, y: 420 }, width: 24, height: 24, collected: false, dialogueId: 'buff_resilience', hidden: false, buff: { health: 35, sanity: 45, stamina: 50 } },
+      { id: 'buff_l10_sanity', type: 'tool', position: { x: 300, y: 260 }, width: 24, height: 24, collected: false, dialogueId: 'buff_sanity', hidden: false, buff: { sanity: 35 } },
+    ],
     npcs: [
       { id: 'nicolas_final', name: 'Nicolas', position: { x: 200, y: 100 }, width: 24, height: 32, dialogueIds: ['nicolas_final'], currentDialogueIndex: 0, sprite: 'npc_child' },
       { id: 'gabriel_final', name: 'Gabriel Llorente', position: { x: 400, y: 100 }, width: 24, height: 32, dialogueIds: ['gabriel_final'], currentDialogueIndex: 0, sprite: 'npc_male' },

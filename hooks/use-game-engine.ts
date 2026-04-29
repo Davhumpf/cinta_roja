@@ -554,6 +554,13 @@ export function useGameEngine() {
           if (collectible.inventoryItem) {
             newPlayer.inventory = [...newPlayer.inventory, collectible.inventoryItem]
           }
+
+          if (collectible.buff) {
+            newPlayer.health = Math.min(100, newPlayer.health + (collectible.buff.health || 0))
+            newPlayer.sanity = Math.min(100, newPlayer.sanity + (collectible.buff.sanity || 0))
+            newPlayer.stamina = Math.min(100, newPlayer.stamina + (collectible.buff.stamina || 0))
+            newPlayer.speed = Math.min(3.4, newPlayer.speed + (collectible.buff.speed || 0))
+          }
           
           if (collectible.dialogueId) {
             dialoguesToShow.push(collectible.dialogueId)

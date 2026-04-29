@@ -763,6 +763,24 @@ export function GameRenderer({ level, player, glitchIntensity, showVHSEffect, va
       // Red mark for important documents
       ctx.fillStyle = '#cc0000'
       ctx.fillRect(x + 12, y + floatOffset, 4, 4)
+    } else if (collectible.type === 'tool') {
+      const toolY = y + floatOffset
+
+      ctx.shadowColor = '#7dd3fc'
+      ctx.shadowBlur = 12 * glowPulse
+
+      ctx.fillStyle = '#0f172a'
+      ctx.fillRect(x + 2, toolY + 2, 20, 20)
+
+      ctx.strokeStyle = '#38bdf8'
+      ctx.lineWidth = 2
+      ctx.strokeRect(x + 2, toolY + 2, 20, 20)
+
+      ctx.fillStyle = '#bae6fd'
+      ctx.fillRect(x + 10, toolY + 5, 4, 14)
+      ctx.fillRect(x + 5, toolY + 10, 14, 4)
+
+      ctx.shadowBlur = 0
     }
   }, [])
 
