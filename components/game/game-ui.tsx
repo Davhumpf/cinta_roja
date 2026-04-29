@@ -76,7 +76,7 @@ export function GameUI({
       {/* HUD - Top */}
       <div className="absolute top-3 left-3 right-3 flex items-start justify-between gap-3 pointer-events-none">
         {/* Level info */}
-        <div className="pointer-events-auto w-[320px] max-w-[46vw] bg-black/55 border border-red-900/55 px-3 py-2 shadow-[0_0_22px_rgba(0,0,0,0.65)] backdrop-blur-[2px]">
+        <div className="pointer-events-auto w-[260px] bg-gradient-to-r from-black/40 to-transparent border-l-2 border-red-900/60 px-3 py-1.5 shadow-md">
           <div className="flex items-center gap-2">
             <div className="text-red-400 text-[10px] tracking-[0.24em]">NIVEL {level.id}</div>
             <div className="h-px flex-1 bg-red-950/80" />
@@ -107,7 +107,7 @@ export function GameUI({
       <div className="absolute bottom-3 left-3 right-3 grid grid-cols-[auto_minmax(220px,1fr)_auto] items-end gap-2 pointer-events-none">
         {/* Tapes & Inventory */}
         <div className="pointer-events-auto flex gap-2">
-          <div className="bg-black/55 border border-red-900/60 px-3 py-2 shadow-[0_0_18px_rgba(0,0,0,0.65)] backdrop-blur-[2px]">
+          <div className="bg-black/30 border-l-2 border-red-900/60 px-3 py-1.5 shadow-md">
             <div className="flex items-center gap-2">
               <div className="border border-red-900/50 px-1.5 py-0.5 text-[10px] text-red-300">VHS</div>
               <div>
@@ -124,7 +124,7 @@ export function GameUI({
 
           {/* Inventory count */}
           {player.inventory.length > 0 && (
-            <div className="bg-black/55 border border-amber-900/70 px-3 py-2 shadow-[0_0_18px_rgba(0,0,0,0.65)] backdrop-blur-[2px]">
+            <div className="bg-black/30 border-l-2 border-amber-900/70 px-3 py-1.5 shadow-md">
               <div className="flex items-center gap-2">
                 <div className="border border-amber-900/50 px-1.5 py-0.5 text-[10px] text-amber-300">I</div>
                 <div>
@@ -138,7 +138,7 @@ export function GameUI({
 
         {/* Detection Counter for Stealth Levels */}
         {isStealthLevel && (
-          <div className="pointer-events-auto justify-self-center bg-black/55 border border-red-900/60 px-3 py-2 shadow-[0_0_18px_rgba(0,0,0,0.65)] backdrop-blur-[2px]">
+          <div className="pointer-events-auto justify-self-center bg-black/30 border border-red-900/40 px-3 py-1.5 shadow-md">
             <div className="text-red-400 text-[10px] tracking-[0.22em] mb-1">DETECCIONES</div>
             <div className="flex gap-1.5">
               {[0, 1, 2].map(i => (
@@ -157,7 +157,7 @@ export function GameUI({
 
         {/* Puzzle Progress */}
         {puzzle && !puzzle.isSolved && (
-          <div className="pointer-events-auto justify-self-center w-full max-w-[560px] bg-black/60 border border-cyan-900/70 px-3 py-2 shadow-[0_0_22px_rgba(0,0,0,0.72)] backdrop-blur-[2px]">
+          <div className="pointer-events-auto justify-self-center w-full max-w-[420px] bg-black/35 border-t-2 border-cyan-900/60 px-4 py-2 shadow-lg">
             <div className="flex items-center justify-between gap-3">
               <div className="text-cyan-300 text-[12px] font-bold leading-tight">{puzzle.name}</div>
               {puzzle.id === 'fusebox_puzzle' && (
@@ -192,7 +192,7 @@ export function GameUI({
         )}
 
         {/* Controls */}
-        <div className="pointer-events-auto bg-black/45 border border-slate-700/70 px-3 py-2 text-[10px] text-gray-400/85 shadow-[0_0_18px_rgba(0,0,0,0.65)] backdrop-blur-[2px]">
+        <div className="pointer-events-auto bg-black/20 border border-slate-700/40 px-3 py-1 text-[9px] text-gray-400/60 shadow-sm">
           <div className="grid grid-cols-2 gap-x-3 gap-y-0.5">
             <span>WASD</span><span>Mover</span>
             <span>SHIFT</span><span>Correr</span>
@@ -452,8 +452,8 @@ function StatPill({ label, value, color }: { label: string; value: number; color
 
   return (
     <div
-      className="w-[112px] bg-black/50 border px-2 py-1 shadow-[0_0_18px_rgba(0,0,0,0.65)] backdrop-blur-[2px]"
-      style={{ borderColor: `${color}66` }}
+      className="w-[95px] bg-black/30 border-l-2 px-2 py-1 shadow-sm"
+      style={{ borderColor: `${color}44` }}
     >
       <div className="flex items-center justify-between gap-2">
         <span className="text-[10px] tracking-[0.2em]" style={{ color }}>{label}</span>
