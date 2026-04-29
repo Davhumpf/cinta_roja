@@ -1,6 +1,6 @@
 'use client'
 
-import type { Player, Level, Dialogue, InventoryItem } from '@/lib/game-types'
+import type { Player, Level, Dialogue } from '@/lib/game-types'
 import { useEffect, useState } from 'react'
 
 interface GameUIProps {
@@ -99,18 +99,21 @@ export function GameUI({
   ]
 
   return (
-    <div className="absolute inset-0 pointer-events-none">
+    <div className="absolute inset-0 pointer-events-none font-mono">
       {/* HUD - Top */}
       <div className="absolute top-4 left-4 right-4 flex justify-start items-start pointer-events-auto">
         {/* Level info */}
-        <div className="bg-black/90 border-2 border-red-800 px-4 py-2 font-mono max-w-sm">
-          <div className="text-red-500 text-xs tracking-widest">NIVEL {level.id}</div>
-          <div className="text-gray-200 text-sm font-bold">{level.name}</div>
-          <div className="text-gray-400 text-xs mt-1 leading-tight">{level.objective}</div>
+        <div className="pointer-events-auto w-[260px] bg-gradient-to-r from-black/40 to-transparent border-l-2 border-red-900/60 px-3 py-1.5 shadow-md">
+          <div className="flex items-center gap-2">
+            <div className="text-red-400 text-[10px] tracking-[0.24em]">NIVEL {level.id}</div>
+            <div className="h-px flex-1 bg-red-950/80" />
+          </div>
+          <div className="text-gray-100 text-[13px] font-bold leading-tight">{level.name}</div>
+          <div className="text-gray-400 text-[11px] mt-1 leading-tight max-h-[40px] overflow-hidden">{level.objective}</div>
           {isDarkLevel && player.hasFlashlight && (
-            <div className="mt-2 flex items-center gap-2 text-[11px] text-amber-300">
-              <span className="inline-block h-2 w-2 rounded-full bg-amber-300 animate-pulse" />
-              <span>Linterna dañada activa: 7s de oscuridad, luego 3s iluminando todo el mapa.</span>
+            <div className="mt-2 flex items-center gap-2 text-[10px] text-amber-300/90">
+              <span className="inline-block h-1.5 w-1.5 bg-amber-300 animate-pulse" />
+              <span>Linterna danada: 7s oscuridad / 3s barrido.</span>
             </div>
           )}
         </div>
@@ -189,16 +192,16 @@ export function GameUI({
       {/* HUD - Bottom */}
       <div className="absolute bottom-4 left-4 right-4 flex justify-between items-end pointer-events-auto gap-4">
         {/* Tapes & Inventory */}
-        <div className="flex gap-3">
-          <div className="bg-black/90 border-2 border-red-800 px-4 py-2 font-mono">
-            <div className="flex items-center gap-3">
-              <div className="text-2xl">📼</div>
+        <div className="pointer-events-auto flex gap-2">
+          <div className="bg-black/30 border-l-2 border-red-900/60 px-3 py-1.5 shadow-md">
+            <div className="flex items-center gap-2">
+              <div className="border border-red-900/50 px-1.5 py-0.5 text-[10px] text-red-300">VHS</div>
               <div>
-                <div className="text-red-500 text-xs tracking-widest">CINTAS</div>
-                <div className="text-gray-200 text-lg">
+                <div className="text-red-400 text-[10px] tracking-[0.22em]">CINTAS</div>
+                <div className="text-gray-100 text-base leading-none">
                   {player.tapes}/{level.requiredTapes}
                   {player.tapes >= level.requiredTapes && !level.exitLocked && (
-                    <span className="text-green-400 ml-2 text-sm">SALIDA ABIERTA</span>
+                    <span className="text-green-400 ml-2 text-xs">ABIERTA</span>
                   )}
                 </div>
               </div>
@@ -207,12 +210,12 @@ export function GameUI({
 
           {/* Inventory count */}
           {player.inventory.length > 0 && (
-            <div className="bg-black/90 border-2 border-amber-800 px-4 py-2 font-mono">
-              <div className="flex items-center gap-3">
-                <div className="text-2xl">🎒</div>
+            <div className="bg-black/30 border-l-2 border-amber-900/70 px-3 py-1.5 shadow-md">
+              <div className="flex items-center gap-2">
+                <div className="border border-amber-900/50 px-1.5 py-0.5 text-[10px] text-amber-300">I</div>
                 <div>
-                  <div className="text-amber-500 text-xs tracking-widest">INVENTARIO [I]</div>
-                  <div className="text-gray-200 text-lg">{player.inventory.length} items</div>
+                  <div className="text-amber-400 text-[10px] tracking-[0.22em]">INVENTARIO</div>
+                  <div className="text-gray-100 text-base leading-none">{player.inventory.length} items</div>
                 </div>
               </div>
             </div>
@@ -221,13 +224,13 @@ export function GameUI({
 
         {/* Detection Counter for Stealth Levels */}
         {isStealthLevel && (
-          <div className="bg-black/90 border-2 border-red-800 px-4 py-2 font-mono">
-            <div className="text-red-500 text-xs tracking-widest mb-2">DETECCIONES</div>
-            <div className="flex gap-2">
+          <div className="pointer-events-auto justify-self-center bg-black/30 border border-red-900/40 px-3 py-1.5 shadow-md">
+            <div className="text-red-400 text-[10px] tracking-[0.22em] mb-1">DETECCIONES</div>
+            <div className="flex gap-1.5">
               {[0, 1, 2].map(i => (
                 <div 
                   key={i}
-                  className={`w-6 h-6 rounded-full border-2 transition-all ${
+                  className={`h-3 w-3 border transition-all ${
                     i < detectionCount 
                       ? 'bg-red-500 border-red-400 shadow-lg shadow-red-500/50' 
                       : 'bg-transparent border-gray-600'
@@ -235,7 +238,6 @@ export function GameUI({
                 />
               ))}
             </div>
-            <div className="text-xs text-gray-500 mt-1">3 = GAME OVER</div>
           </div>
         )}
 
@@ -489,6 +491,32 @@ export function GameUI({
           </div>
         </div>
       )}
+    </div>
+  )
+}
+
+function StatPill({ label, value, color }: { label: string; value: number; color: string }) {
+  const safeValue = Math.max(0, Math.min(100, value))
+
+  return (
+    <div
+      className="w-[95px] bg-black/30 border-l-2 px-2 py-1 shadow-sm"
+      style={{ borderColor: `${color}44` }}
+    >
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-[10px] tracking-[0.2em]" style={{ color }}>{label}</span>
+        <span className="text-[10px] text-gray-200">{Math.round(safeValue)}%</span>
+      </div>
+      <div className="mt-1 h-1.5 bg-slate-950/90">
+        <div
+          className="h-full transition-all duration-300"
+          style={{
+            width: `${safeValue}%`,
+            backgroundColor: color,
+            boxShadow: `0 0 10px ${color}88`,
+          }}
+        />
+      </div>
     </div>
   )
 }
