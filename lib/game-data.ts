@@ -692,7 +692,10 @@ export const levels: Level[] = [
       // Exit door (locked)
       { id: 'exit_door', type: 'door', position: { x: 800, y: 300 }, width: 60, height: 80, solid: true, isOpen: false, requiresKey: 'fusebox_complete' },
     ],
-    enemies: [],
+    enemies: [
+      { id: 'apartment_shadow_1', type: 'shadow', position: { x: 650, y: 180 }, width: 26, height: 34, speed: 1.1, direction: 'down', isActive: true, detectionRadius: 75, patrolPath: [{ x: 650, y: 180 }, { x: 650, y: 420 }], patrolIndex: 0, behaviorState: 'patrol', canHear: true, hearingRadius: 70, stunned: false, stunnedTimer: 0 },
+      { id: 'apartment_echo_1', type: 'echo', position: { x: 250, y: 520 }, width: 24, height: 32, speed: 0.9, direction: 'right', isActive: true, detectionRadius: 65, patrolPath: [{ x: 180, y: 520 }, { x: 500, y: 520 }], patrolIndex: 0, behaviorState: 'patrol', canHear: false, hearingRadius: 0, stunned: false, stunnedTimer: 0 },
+    ],
     collectibles: [
       { id: 'fuse_1', type: 'fuse', position: { x: 150, y: 580 }, width: 20, height: 20, collected: false, dialogueId: 'fuse_1_found', hidden: false, inventoryItem: { id: 'fuse_1', type: 'fuse', name: 'Fusible #2', description: 'Un fusible con el numero 2 grabado.' } },
       { id: 'fuse_2', type: 'fuse', position: { x: 420, y: 200 }, width: 20, height: 20, collected: false, dialogueId: 'fuse_2_found', hidden: false, inventoryItem: { id: 'fuse_2', type: 'fuse', name: 'Fusible #1', description: 'Un fusible con el numero 1 grabado.' } },
@@ -778,6 +781,8 @@ export const levels: Level[] = [
     enemies: [
       { id: 'shadow_1', type: 'shadow', position: { x: 400, y: 300 }, width: 28, height: 36, speed: 1.8, direction: 'right', isActive: true, detectionRadius: 100, patrolPath: [{ x: 400, y: 300 }, { x: 600, y: 300 }, { x: 600, y: 500 }, { x: 400, y: 500 }], patrolIndex: 0, behaviorState: 'patrol', canHear: true, hearingRadius: 80, stunned: false, stunnedTimer: 0 },
       { id: 'shadow_2', type: 'shadow', position: { x: 700, y: 150 }, width: 28, height: 36, speed: 1.5, direction: 'down', isActive: true, detectionRadius: 90, patrolPath: [{ x: 700, y: 150 }, { x: 700, y: 350 }], patrolIndex: 0, behaviorState: 'patrol', canHear: true, hearingRadius: 70, stunned: false, stunnedTimer: 0 },
+      { id: 'shadow_3', type: 'shadow', position: { x: 930, y: 600 }, width: 28, height: 36, speed: 1.4, direction: 'left', isActive: true, detectionRadius: 85, patrolPath: [{ x: 780, y: 600 }, { x: 1080, y: 600 }], patrolIndex: 0, behaviorState: 'patrol', canHear: true, hearingRadius: 75, stunned: false, stunnedTimer: 0 },
+      { id: 'shadow_alley', type: 'shadow', position: { x: 1040, y: 260 }, width: 26, height: 34, speed: 1.2, direction: 'down', isActive: true, detectionRadius: 80, patrolPath: [{ x: 1040, y: 220 }, { x: 1040, y: 460 }], patrolIndex: 0, behaviorState: 'patrol', canHear: false, hearingRadius: 0, stunned: false, stunnedTimer: 0 },
     ],
     collectibles: [
       { id: 'clue_code_1', type: 'document', position: { x: 250, y: 200 }, width: 20, height: 24, collected: false, dialogueId: 'code_hint_1', hidden: false },
@@ -831,8 +836,8 @@ export const levels: Level[] = [
     playerStart: { x: 100, y: 700 },
     backgroundColor: '#12121a',
     ambientColor: '#08080f',
-    fogOfWar: true,
-    visibilityRadius: 120,
+    fogOfWar: false,
+    visibilityRadius: 180,
     obstacles: [
       { id: 'wall_top', type: 'wall', position: { x: 0, y: 0 }, width: 1000, height: 40, solid: true },
       { id: 'wall_bottom', type: 'wall', position: { x: 0, y: 760 }, width: 1000, height: 40, solid: true },
@@ -850,6 +855,8 @@ export const levels: Level[] = [
     ],
     enemies: [
       { id: 'echo_1', type: 'echo', position: { x: 500, y: 350 }, width: 26, height: 34, speed: 1.5, direction: 'right', isActive: true, detectionRadius: 100, patrolPath: [{ x: 250, y: 350 }, { x: 700, y: 350 }], patrolIndex: 0, behaviorState: 'patrol', canHear: true, hearingRadius: 120, stunned: false, stunnedTimer: 0 },
+      { id: 'echo_2', type: 'echo', position: { x: 300, y: 620 }, width: 26, height: 34, speed: 1.25, direction: 'right', isActive: true, detectionRadius: 90, patrolPath: [{ x: 180, y: 620 }, { x: 520, y: 620 }], patrolIndex: 0, behaviorState: 'patrol', canHear: true, hearingRadius: 110, stunned: false, stunnedTimer: 0 },
+      { id: 'echo_3', type: 'echo', position: { x: 820, y: 260 }, width: 26, height: 34, speed: 1.1, direction: 'down', isActive: true, detectionRadius: 85, patrolPath: [{ x: 820, y: 160 }, { x: 820, y: 520 }], patrolIndex: 0, behaviorState: 'patrol', canHear: true, hearingRadius: 100, stunned: false, stunnedTimer: 0 },
     ],
     collectibles: [
       { id: 'tape_3', type: 'vhs_tape', position: { x: 850, y: 150 }, width: 24, height: 24, collected: false, dialogueId: 'tape_3', hidden: true, revealedBy: 'sequence_puzzle' },
@@ -918,6 +925,8 @@ export const levels: Level[] = [
     ],
     enemies: [
       { id: 'shadow_bridge', type: 'shadow', position: { x: 700, y: 250 }, width: 28, height: 36, speed: 2.5, direction: 'left', isActive: true, detectionRadius: 80, patrolPath: [{ x: 300, y: 250 }, { x: 1100, y: 250 }], patrolIndex: 0, behaviorState: 'patrol', canHear: false, hearingRadius: 0, stunned: false, stunnedTimer: 0 },
+      { id: 'shadow_bridge_2', type: 'shadow', position: { x: 420, y: 180 }, width: 26, height: 34, speed: 1.8, direction: 'right', isActive: true, detectionRadius: 70, patrolPath: [{ x: 260, y: 180 }, { x: 620, y: 180 }], patrolIndex: 0, behaviorState: 'patrol', canHear: false, hearingRadius: 0, stunned: false, stunnedTimer: 0 },
+      { id: 'shadow_bridge_3', type: 'shadow', position: { x: 980, y: 320 }, width: 26, height: 34, speed: 1.7, direction: 'left', isActive: true, detectionRadius: 70, patrolPath: [{ x: 820, y: 320 }, { x: 1220, y: 320 }], patrolIndex: 0, behaviorState: 'patrol', canHear: false, hearingRadius: 0, stunned: false, stunnedTimer: 0 },
     ],
     collectibles: [
       { id: 'tape_4', type: 'vhs_tape', position: { x: 1200, y: 250 }, width: 24, height: 24, collected: false, dialogueId: 'tape_4', hidden: false },
@@ -999,6 +1008,8 @@ export const levels: Level[] = [
     enemies: [
       { id: 'operator_1', type: 'operator', position: { x: 800, y: 500 }, width: 32, height: 42, speed: 1.2, direction: 'left', isActive: true, detectionRadius: 200, behaviorState: 'chase', canHear: false, hearingRadius: 0, stunned: false, stunnedTimer: 0 },
       { id: 'shadow_parking', type: 'shadow', position: { x: 400, y: 700 }, width: 28, height: 36, speed: 1.6, direction: 'right', isActive: true, detectionRadius: 90, patrolPath: [{ x: 200, y: 700 }, { x: 800, y: 700 }], patrolIndex: 0, behaviorState: 'patrol', canHear: true, hearingRadius: 80, stunned: false, stunnedTimer: 0 },
+      { id: 'shadow_parking_2', type: 'shadow', position: { x: 1050, y: 260 }, width: 28, height: 36, speed: 1.4, direction: 'down', isActive: true, detectionRadius: 90, patrolPath: [{ x: 1050, y: 180 }, { x: 1050, y: 520 }], patrolIndex: 0, behaviorState: 'patrol', canHear: true, hearingRadius: 85, stunned: false, stunnedTimer: 0 },
+      { id: 'operator_echo', type: 'operator', position: { x: 1150, y: 780 }, width: 30, height: 40, speed: 0.75, direction: 'up', isActive: true, detectionRadius: 160, behaviorState: 'chase', canHear: false, hearingRadius: 0, stunned: false, stunnedTimer: 0 },
     ],
     collectibles: [
       { id: 'keycard_b1', type: 'key', position: { x: 750, y: 150 }, width: 24, height: 16, collected: false, dialogueId: 'keycard_1', hidden: false, inventoryItem: { id: 'keycard_b1', type: 'key', name: 'Tarjeta B1', description: 'Tarjeta de acceso al nivel B1.' } },
@@ -1065,6 +1076,8 @@ export const levels: Level[] = [
     enemies: [
       { id: 'echo_hospital_1', type: 'echo', position: { x: 300, y: 300 }, width: 26, height: 34, speed: 1.3, direction: 'down', isActive: true, detectionRadius: 100, patrolPath: [{ x: 300, y: 100 }, { x: 300, y: 400 }], patrolIndex: 0, behaviorState: 'patrol', canHear: true, hearingRadius: 100, stunned: false, stunnedTimer: 0 },
       { id: 'echo_hospital_2', type: 'echo', position: { x: 700, y: 250 }, width: 26, height: 34, speed: 1.4, direction: 'left', isActive: true, detectionRadius: 90, patrolPath: [{ x: 500, y: 250 }, { x: 900, y: 250 }], patrolIndex: 0, behaviorState: 'patrol', canHear: true, hearingRadius: 90, stunned: false, stunnedTimer: 0 },
+      { id: 'echo_hospital_3', type: 'echo', position: { x: 950, y: 620 }, width: 26, height: 34, speed: 1.15, direction: 'left', isActive: true, detectionRadius: 85, patrolPath: [{ x: 760, y: 620 }, { x: 1080, y: 620 }], patrolIndex: 0, behaviorState: 'patrol', canHear: true, hearingRadius: 95, stunned: false, stunnedTimer: 0 },
+      { id: 'shadow_hospital', type: 'shadow', position: { x: 420, y: 520 }, width: 28, height: 36, speed: 1.0, direction: 'down', isActive: true, detectionRadius: 75, patrolPath: [{ x: 420, y: 360 }, { x: 420, y: 700 }], patrolIndex: 0, behaviorState: 'patrol', canHear: false, hearingRadius: 0, stunned: false, stunnedTimer: 0 },
     ],
     collectibles: [
       { id: 'record_1', type: 'document', position: { x: 120, y: 200 }, width: 20, height: 24, collected: false, dialogueId: 'medical_record_1', hidden: false },
@@ -1144,7 +1157,10 @@ export const levels: Level[] = [
       { id: 'board_2', type: 'furniture', position: { x: 450, y: 500 }, width: 100, height: 60, solid: true },
       { id: 'board_3', type: 'furniture', position: { x: 750, y: 400 }, width: 100, height: 60, solid: true },
     ],
-    enemies: [],
+    enemies: [
+      { id: 'station_shadow_1', type: 'shadow', position: { x: 220, y: 610 }, width: 26, height: 34, speed: 1.2, direction: 'right', isActive: true, detectionRadius: 75, patrolPath: [{ x: 160, y: 610 }, { x: 380, y: 610 }], patrolIndex: 0, behaviorState: 'patrol', canHear: true, hearingRadius: 70, stunned: false, stunnedTimer: 0 },
+      { id: 'station_shadow_2', type: 'shadow', position: { x: 760, y: 610 }, width: 26, height: 34, speed: 1.2, direction: 'left', isActive: true, detectionRadius: 75, patrolPath: [{ x: 620, y: 610 }, { x: 840, y: 610 }], patrolIndex: 0, behaviorState: 'patrol', canHear: true, hearingRadius: 70, stunned: false, stunnedTimer: 0 },
+    ],
     collectibles: [
       { id: 'clue_logic_1', type: 'document', position: { x: 180, y: 350 }, width: 20, height: 24, collected: false, dialogueId: 'logic_clue_1', hidden: false },
       { id: 'clue_logic_2', type: 'document', position: { x: 480, y: 450 }, width: 20, height: 24, collected: false, dialogueId: 'logic_clue_2', hidden: false },
@@ -1222,6 +1238,8 @@ export const levels: Level[] = [
       { id: 'stalker_1', type: 'stalker', position: { x: 300, y: 400 }, width: 30, height: 38, speed: 2.0, direction: 'right', isActive: true, detectionRadius: 130, patrolPath: [{ x: 200, y: 400 }, { x: 400, y: 400 }, { x: 400, y: 600 }, { x: 200, y: 600 }], patrolIndex: 0, behaviorState: 'patrol', canHear: true, hearingRadius: 150, stunned: false, stunnedTimer: 0 },
       { id: 'stalker_2', type: 'stalker', position: { x: 900, y: 500 }, width: 30, height: 38, speed: 1.8, direction: 'left', isActive: true, detectionRadius: 120, patrolPath: [{ x: 700, y: 500 }, { x: 1000, y: 500 }, { x: 1000, y: 700 }, { x: 700, y: 700 }], patrolIndex: 0, behaviorState: 'patrol', canHear: true, hearingRadius: 140, stunned: false, stunnedTimer: 0 },
       { id: 'stalker_3', type: 'stalker', position: { x: 600, y: 800 }, width: 30, height: 38, speed: 2.2, direction: 'up', isActive: true, detectionRadius: 110, patrolPath: [{ x: 400, y: 800 }, { x: 800, y: 800 }], patrolIndex: 0, behaviorState: 'patrol', canHear: true, hearingRadius: 130, stunned: false, stunnedTimer: 0 },
+      { id: 'stalker_4', type: 'stalker', position: { x: 1050, y: 820 }, width: 30, height: 38, speed: 1.7, direction: 'left', isActive: true, detectionRadius: 105, patrolPath: [{ x: 900, y: 820 }, { x: 1100, y: 820 }, { x: 1100, y: 920 }, { x: 900, y: 920 }], patrolIndex: 0, behaviorState: 'patrol', canHear: true, hearingRadius: 135, stunned: false, stunnedTimer: 0 },
+      { id: 'stalker_5', type: 'stalker', position: { x: 520, y: 220 }, width: 30, height: 38, speed: 1.6, direction: 'down', isActive: true, detectionRadius: 100, patrolPath: [{ x: 520, y: 180 }, { x: 700, y: 180 }, { x: 700, y: 340 }, { x: 520, y: 340 }], patrolIndex: 0, behaviorState: 'patrol', canHear: true, hearingRadius: 125, stunned: false, stunnedTimer: 0 },
     ],
     collectibles: [
       { id: 'tape_8', type: 'vhs_tape', position: { x: 580, y: 480 }, width: 24, height: 24, collected: false, dialogueId: 'tape_8', hidden: false },
@@ -1285,6 +1303,8 @@ export const levels: Level[] = [
     ],
     enemies: [
       { id: 'operator_orfeo', type: 'operator', position: { x: 800, y: 800 }, width: 34, height: 44, speed: 1.0, direction: 'up', isActive: true, detectionRadius: 250, behaviorState: 'chase', canHear: false, hearingRadius: 0, stunned: false, stunnedTimer: 0 },
+      { id: 'orfeo_echo_1', type: 'echo', position: { x: 260, y: 360 }, width: 26, height: 34, speed: 1.2, direction: 'right', isActive: true, detectionRadius: 90, patrolPath: [{ x: 160, y: 360 }, { x: 440, y: 360 }], patrolIndex: 0, behaviorState: 'patrol', canHear: true, hearingRadius: 90, stunned: false, stunnedTimer: 0 },
+      { id: 'orfeo_shadow_1', type: 'shadow', position: { x: 760, y: 560 }, width: 28, height: 36, speed: 1.1, direction: 'down', isActive: true, detectionRadius: 85, patrolPath: [{ x: 760, y: 420 }, { x: 760, y: 760 }], patrolIndex: 0, behaviorState: 'patrol', canHear: false, hearingRadius: 0, stunned: false, stunnedTimer: 0 },
     ],
     collectibles: [
       { id: 'tape_9', type: 'vhs_tape', position: { x: 500, y: 100 }, width: 24, height: 24, collected: false, dialogueId: 'tape_9', hidden: true, revealedBy: 'memory_puzzle' },
@@ -1355,6 +1375,8 @@ export const levels: Level[] = [
     ],
     enemies: [
       { id: 'operator_final', type: 'operator', position: { x: 280, y: 150 }, width: 40, height: 50, speed: 0, direction: 'down', isActive: true, detectionRadius: 300, behaviorState: 'idle', canHear: false, hearingRadius: 0, stunned: false, stunnedTimer: 0 },
+      { id: 'truth_shadow_left', type: 'shadow', position: { x: 120, y: 330 }, width: 26, height: 34, speed: 0.8, direction: 'right', isActive: true, detectionRadius: 65, patrolPath: [{ x: 100, y: 330 }, { x: 240, y: 330 }], patrolIndex: 0, behaviorState: 'patrol', canHear: false, hearingRadius: 0, stunned: false, stunnedTimer: 0 },
+      { id: 'truth_shadow_right', type: 'shadow', position: { x: 450, y: 330 }, width: 26, height: 34, speed: 0.8, direction: 'left', isActive: true, detectionRadius: 65, patrolPath: [{ x: 360, y: 330 }, { x: 500, y: 330 }], patrolIndex: 0, behaviorState: 'patrol', canHear: false, hearingRadius: 0, stunned: false, stunnedTimer: 0 },
     ],
     collectibles: [],
     npcs: [

@@ -71,10 +71,37 @@ export function GameUI({
     }
   }, [currentDialogue])
 
+  const statCards = [
+    {
+      label: 'SALUD',
+      value: player.health,
+      valueClass: 'text-red-400',
+      labelClass: 'text-red-500',
+      borderClass: 'border-red-900',
+      barColor: player.health > 50 ? '#22c55e' : player.health > 25 ? '#eab308' : '#ef4444',
+    },
+    {
+      label: 'CORDURA',
+      value: player.sanity,
+      valueClass: 'text-purple-400',
+      labelClass: 'text-purple-500',
+      borderClass: 'border-purple-900',
+      barColor: '#9333ea',
+    },
+    {
+      label: 'STAMINA',
+      value: player.stamina,
+      valueClass: 'text-yellow-400',
+      labelClass: 'text-yellow-500',
+      borderClass: 'border-yellow-900',
+      barColor: '#eab308',
+    },
+  ]
+
   return (
     <div className="absolute inset-0 pointer-events-none font-mono">
       {/* HUD - Top */}
-      <div className="absolute top-3 left-3 right-3 flex items-start justify-between gap-3 pointer-events-none">
+      <div className="absolute top-4 left-4 right-4 flex justify-start items-start pointer-events-auto">
         {/* Level info */}
         <div className="pointer-events-auto w-[260px] bg-gradient-to-r from-black/40 to-transparent border-l-2 border-red-900/60 px-3 py-1.5 shadow-md">
           <div className="flex items-center gap-2">
@@ -90,21 +117,80 @@ export function GameUI({
             </div>
           )}
         </div>
+      </div>
 
+      <div className="absolute right-4 top-4 bottom-4 w-[230px] flex flex-col gap-3 pointer-events-auto">
         {/* Stats */}
-        <div className="pointer-events-auto flex flex-wrap justify-end gap-2">
-          <StatPill
-            label="SALUD"
-            value={player.health}
-            color={player.health > 50 ? '#22c55e' : player.health > 25 ? '#eab308' : '#ef4444'}
-          />
-          <StatPill label="CORDURA" value={player.sanity} color="#a855f7" />
-          <StatPill label="STAMINA" value={player.stamina} color="#facc15" />
+        <div className="bg-black/90 border-2 border-red-800 px-3 py-3 font-mono">
+          <div className="flex flex-col gap-2">
+            {statCards.map((stat) => (
+              <div key={stat.label} className="bg-black/50 border border-red-950/80 px-2 py-2">
+                <div className={`text-xs tracking-widest mb-1 ${stat.labelClass}`}>{stat.label}</div>
+                <div className="flex items-center gap-2">
+                  <div className={`flex-1 h-3 bg-gray-800 border ${stat.borderClass}`}>
+                    <div
+                      className="h-full transition-all duration-300"
+                      style={{
+                        width: `${stat.value}%`,
+                        backgroundColor: stat.barColor,
+                      }}
+                    />
+                  </div>
+                  <span className={`text-xs w-10 text-right ${stat.valueClass}`}>{Math.round(stat.value)}%</span>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* Right rail info space between stats and controls */}
+        <div className="bg-black/90 border-2 border-cyan-800 px-3 py-2 font-mono flex-1 overflow-y-auto">
+          {puzzle && !puzzle.isSolved ? (
+            <>
+              <div className="text-cyan-400 text-sm font-bold">{puzzle.name}</div>
+              <div className="text-gray-400 text-xs leading-tight whitespace-normal break-words">{puzzle.description}</div>
+              {(puzzle.type === 'sequence' || puzzle.type === 'memory') && puzzle.sequenceSwitches && (
+                <div className="flex gap-1 mt-2">
+                  {(puzzle.sequenceSwitches || puzzle.memorySequence || []).map((_, i) => (
+                    <div
+                      key={i}
+                      className={`w-4 h-4 rounded transition-all ${
+                        i < (puzzle.currentSequenceIndex || 0)
+                          ? 'bg-green-500 shadow-lg shadow-green-500/50'
+                          : 'bg-gray-700'
+                      }`}
+                    />
+                  ))}
+                </div>
+              )}
+              <div className="text-gray-500 text-xs mt-1 italic leading-tight whitespace-normal break-words">{puzzle.hint}</div>
+              {puzzle.id === 'fusebox_puzzle' && (
+                <div className="text-amber-300 text-xs mt-2 leading-tight whitespace-normal break-words">
+                  Acércate a la caja y presiona E. Si ya encontraste el siguiente fusible correcto, lo insertará.
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="h-full flex items-center justify-center text-center text-xs text-cyan-200/70">
+              Espacio reservado para información del nivel.
+            </div>
+          )}
+        </div>
+
+        {/* Controls */}
+        <div className="bg-black/90 border-2 border-gray-700 px-3 py-2 font-mono text-xs text-gray-400">
+          <div className="grid grid-cols-2 gap-x-3 gap-y-1">
+            <span>WASD / Flechas</span><span>Mover</span>
+            <span>SHIFT</span><span>Correr</span>
+            <span>E / Enter</span><span>Interactuar</span>
+            <span>I</span><span>Inventario</span>
+            <span>ESC / P</span><span>Pausa</span>
+          </div>
         </div>
       </div>
 
       {/* HUD - Bottom */}
-      <div className="absolute bottom-3 left-3 right-3 grid grid-cols-[auto_minmax(220px,1fr)_auto] items-end gap-2 pointer-events-none">
+      <div className="absolute bottom-4 left-4 right-4 flex justify-between items-end pointer-events-auto gap-4">
         {/* Tapes & Inventory */}
         <div className="pointer-events-auto flex gap-2">
           <div className="bg-black/30 border-l-2 border-red-900/60 px-3 py-1.5 shadow-md">
@@ -155,34 +241,6 @@ export function GameUI({
           </div>
         )}
 
-        {/* Puzzle Progress */}
-        {puzzle && !puzzle.isSolved && (
-          <div className="pointer-events-auto justify-self-center w-full max-w-[420px] bg-black/35 border-t-2 border-cyan-900/60 px-4 py-2 shadow-lg">
-            <div className="flex items-center justify-between gap-3">
-              <div className="text-cyan-300 text-[12px] font-bold leading-tight">{puzzle.name}</div>
-              {puzzle.id === 'fusebox_puzzle' && (
-                <div className="text-amber-300 text-[10px] whitespace-nowrap">E para insertar</div>
-              )}
-            </div>
-            <div className="text-gray-400 text-[11px] leading-tight">{puzzle.description}</div>
-            {(puzzle.type === 'sequence' || puzzle.type === 'memory') && puzzle.sequenceSwitches && (
-              <div className="flex gap-1 mt-1.5">
-                {(puzzle.sequenceSwitches || puzzle.memorySequence || []).map((_, i) => (
-                  <div 
-                    key={i}
-                    className={`h-3 w-3 transition-all ${
-                      i < (puzzle.currentSequenceIndex || 0)
-                        ? 'bg-green-500 shadow-lg shadow-green-500/50'
-                        : 'bg-slate-700'
-                    }`}
-                  />
-                ))}
-              </div>
-            )}
-            <div className="text-gray-500 text-[10px] mt-1 italic leading-tight max-h-[14px] overflow-hidden">{puzzle.hint}</div>
-          </div>
-        )}
-
         {/* Hiding Indicator */}
         {player.isHiding && (
           <div className="bg-green-900/90 border-2 border-green-500 px-4 py-2 font-mono animate-pulse">
@@ -191,16 +249,6 @@ export function GameUI({
           </div>
         )}
 
-        {/* Controls */}
-        <div className="pointer-events-auto bg-black/20 border border-slate-700/40 px-3 py-1 text-[9px] text-gray-400/60 shadow-sm">
-          <div className="grid grid-cols-2 gap-x-3 gap-y-0.5">
-            <span>WASD</span><span>Mover</span>
-            <span>SHIFT</span><span>Correr</span>
-            <span>E</span><span>Interactuar</span>
-            <span>I</span><span>Inventario</span>
-            <span>ESC</span><span>Pausa</span>
-          </div>
-        </div>
       </div>
 
       {/* Dialogue box */}
