@@ -62,6 +62,14 @@ export function TitleScreen({ onStart, levels, maxUnlockedLevel, onSelectLevel }
       <div className="absolute bottom-8 right-8 text-gray-700 text-[9px] tracking-[0.2em] uppercase">
         unreal_memories_inc
       </div>
+      <div className="absolute bottom-8 left-1/2 -translate-x-1/2 text-center uppercase">
+        <p className="text-gray-600 text-[10px] tracking-widest">
+          UCC - CAMPUS PASTO
+        </p>
+        <p className="mt-1 text-gray-700 text-[9px] tracking-widest">
+          designed by extraditables
+        </p>
+      </div>
 
       {/* Main Content */}
       <div className="relative z-10 text-center px-4">
@@ -82,35 +90,31 @@ export function TitleScreen({ onStart, levels, maxUnlockedLevel, onSelectLevel }
           <p className="text-gray-400 text-sm tracking-[0.3em] uppercase opacity-70">
             Un simulacro de terror psicológico
           </p>
-          <div className="flex flex-col items-center gap-1">
-            <p className="text-gray-600 text-[10px] tracking-widest uppercase">
-              UCC - CAMPUS PASTO
-            </p>
-            <p className="text-gray-700 text-[9px] tracking-widest">
-              PATIÑO • NARVAEZ • CHACUA • RODRIGUEZ
-            </p>
+          <div className="flex flex-col items-center gap-6">
+            <button
+              onClick={onStart}
+              className="group relative px-12 py-4 overflow-hidden transition-all active:scale-95"
+            >
+              <div className="absolute inset-0 border border-red-600/30 group-hover:border-red-600 transition-colors" />
+              <div className="absolute inset-0 bg-red-600/0 group-hover:bg-red-600/5 transition-colors" />
+              <div className={`text-xl font-bold tracking-[0.3em] transition-opacity duration-300 ${showPrompt ? 'opacity-100' : 'opacity-40'}`} style={{ color: '#ef4444' }}>
+                INICIAR
+              </div>
+            </button>
+
+            <button
+              onClick={() => setShowLevelSelect(true)}
+              className="group relative px-6 py-2 overflow-hidden transition-all active:scale-95"
+            >
+              <div className="absolute inset-0 border border-red-600/30 group-hover:border-red-600 transition-colors" />
+              <div className="absolute inset-0 bg-red-600/0 group-hover:bg-red-600/5 transition-colors" />
+              <div className="relative text-[10px] font-bold tracking-[0.4em] uppercase text-gray-500 group-hover:text-red-400 transition-colors">
+                selecc_nivel
+              </div>
+            </button>
           </div>
         </div>
 
-        <button
-          onClick={onStart}
-          className="group relative px-12 py-4 overflow-hidden transition-all active:scale-95"
-        >
-          <div className="absolute inset-0 border border-red-600/30 group-hover:border-red-600 transition-colors" />
-          <div className="absolute inset-0 bg-red-600/0 group-hover:bg-red-600/5 transition-colors" />
-          <div className={`text-xl font-bold tracking-[0.3em] transition-opacity duration-300 ${showPrompt ? 'opacity-100' : 'opacity-40'}`} style={{ color: '#ef4444' }}>
-            INICIAR_SESION
-          </div>
-        </button>
-
-        <div className="mt-8">
-          <button
-            onClick={() => setShowLevelSelect(true)}
-            className="text-gray-500 hover:text-red-400 text-[10px] tracking-[0.4em] uppercase transition-colors"
-          >
-            [ selecc_nivel ]
-          </button>
-        </div>
       </div>
 
       {/* Level Select Modal */}

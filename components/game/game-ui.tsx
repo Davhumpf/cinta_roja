@@ -47,6 +47,7 @@ interface GameUIProps {
 }
 
 type HudTone = 'red' | 'cyan' | 'amber' | 'green'
+type HudMenu = 'mission' | 'objectives'
 type Puzzle = Level['puzzles'][number]
 type InventoryType = Player['inventory'][number]['type']
 
@@ -110,6 +111,10 @@ export function GameUI({
   const [typedText, setTypedText] = useState('')
   const [isTyping, setIsTyping] = useState(false)
   const [clock, setClock] = useState(0)
+  const [openHudMenus, setOpenHudMenus] = useState<Record<HudMenu, boolean>>({
+    mission: false,
+    objectives: false,
+  })
 
   const isStealthLevel = level.hidingSpots.length > 0
   const isDarkLevel = Boolean(level.isDark && !level.lightsOn)
@@ -120,6 +125,10 @@ export function GameUI({
     const interval = window.setInterval(() => setClock(Date.now()), 250)
     return () => window.clearInterval(interval)
   }, [])
+
+  useEffect(() => {
+    setOpenHudMenus({ mission: false, objectives: false })
+  }, [level.id])
 
   // Typewriter effect for dialogue
   useEffect(() => {
@@ -217,15 +226,18 @@ export function GameUI({
         </div>
       </div>
 
-      <div className="absolute left-3 top-16 z-10 flex w-[calc(100vw-1.5rem)] flex-col gap-3 pointer-events-auto sm:left-5 sm:w-[21rem] lg:left-6">
-        <MissionPanel level={level} totalTapes={totalTapes} memoriesCount={memoriesCount} />
-        <StatusPanel stats={statCards} />
-      </div>
-
-      <div className="absolute bottom-20 right-3 z-10 w-[calc(100vw-1.5rem)] pointer-events-auto sm:bottom-5 sm:right-5 sm:w-[22rem] lg:right-6">
-        <ObjectivePanel puzzle={puzzle} isDarkLevel={isDarkLevel} />
-        {isStealthLevel && <DetectionPanel detectionCount={detectionCount} />}
-      </div>
+      <HudDock
+        openMenus={openHudMenus}
+        onToggleMenu={(menu) => setOpenHudMenus(current => ({ ...current, [menu]: !current[menu] }))}
+        level={level}
+        totalTapes={totalTapes}
+        memoriesCount={memoriesCount}
+        stats={statCards}
+        puzzle={puzzle}
+        isDarkLevel={isDarkLevel}
+        isStealthLevel={isStealthLevel}
+        detectionCount={detectionCount}
+      />
 
       {currentDialogue && (
         <DialoguePanel
@@ -316,6 +328,109 @@ function TerminalPanel({
       </div>
       <div className="relative">{children}</div>
     </section>
+  )
+}
+
+function HudDock({
+  openMenus,
+  onToggleMenu,
+  level,
+  totalTapes,
+  memoriesCount,
+  stats,
+  puzzle,
+  isDarkLevel,
+  isStealthLevel,
+  detectionCount,
+}: {
+  openMenus: Record<HudMenu, boolean>
+  onToggleMenu: (menu: HudMenu) => void
+  level: Level
+  totalTapes: number
+  memoriesCount: number
+  stats: StatusStat[]
+  puzzle?: Puzzle
+  isDarkLevel: boolean
+  isStealthLevel: boolean
+  detectionCount: number
+}) {
+  return (
+    <>
+      <div className="absolute left-3 top-[4.85rem] z-30 w-[min(21rem,calc(100vw-1.5rem))] pointer-events-auto sm:left-5 xl:left-6">
+        <div className="flex flex-col gap-2 transition-all duration-300">
+          <div className="transition-all duration-300">
+            <HudMenuButton
+              label="Mission"
+              tone="red"
+              Icon={ClipboardList}
+              isOpen={openMenus.mission}
+              onClick={() => onToggleMenu('mission')}
+            />
+            <div className={cx('grid transition-[grid-template-rows,opacity] duration-300 ease-out', openMenus.mission ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0')}>
+              <div className="min-h-0 overflow-hidden pt-2">
+                <MissionPanel level={level} totalTapes={totalTapes} memoriesCount={memoriesCount} />
+              </div>
+            </div>
+          </div>
+
+          <div className="transition-all duration-300">
+            <HudMenuButton
+              label="Objectives"
+              tone="cyan"
+              Icon={FileText}
+              isOpen={openMenus.objectives}
+              onClick={() => onToggleMenu('objectives')}
+            />
+            <div className={cx('grid transition-[grid-template-rows,opacity] duration-300 ease-out', openMenus.objectives ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0')}>
+              <div className="min-h-0 space-y-3 overflow-hidden pt-2">
+                <ObjectivePanel puzzle={puzzle} isDarkLevel={isDarkLevel} />
+                {isStealthLevel && <DetectionPanel detectionCount={detectionCount} />}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="absolute right-3 top-[4.85rem] z-30 w-[min(21rem,calc(100vw-1.5rem))] pointer-events-auto sm:right-5 xl:right-6">
+        <StatusPanel stats={stats} />
+      </div>
+    </>
+  )
+}
+
+function HudMenuButton({
+  label,
+  tone,
+  Icon,
+  isOpen,
+  onClick,
+}: {
+  label: string
+  tone: HudTone
+  Icon: LucideIcon
+  isOpen: boolean
+  onClick: () => void
+}) {
+  const toneClass = toneStyles[tone]
+
+  return (
+    <button
+      type="button"
+      aria-expanded={isOpen}
+      onClick={onClick}
+      className={cx(
+        'group flex h-9 w-full items-center gap-2 border bg-black/80 px-3 backdrop-blur-md transition-all active:scale-95',
+        'hover:bg-black/95',
+        toneClass.border,
+        isOpen && toneClass.glow,
+      )}
+    >
+      <Icon className={cx('h-3.5 w-3.5', toneClass.accent)} />
+      <span className={cx('text-[9px] font-black uppercase tracking-[0.22em]', isOpen ? toneClass.accent : 'text-slate-400')}>
+        {label}
+      </span>
+      <span className={cx('ml-auto text-[10px] transition-transform', toneClass.accent, isOpen && 'rotate-180')}>v</span>
+    </button>
   )
 }
 

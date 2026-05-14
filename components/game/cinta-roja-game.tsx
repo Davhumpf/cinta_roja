@@ -37,8 +37,13 @@ export function CintaRojaGame() {
     )
   }
 
-  const viewportWidth = typeof window !== 'undefined' ? Math.max(420, window.innerWidth - 360) : 900
-  const viewportHeight = typeof window !== 'undefined' ? Math.max(360, window.innerHeight - 120) : 640
+  const windowWidth = typeof window !== 'undefined' ? window.innerWidth : 1440
+  const windowHeight = typeof window !== 'undefined' ? window.innerHeight : 760
+  const sideRailWidth = windowWidth >= 1280 ? 360 : 8
+  const gameTopInset = 68
+  const gameBottomInset = 16
+  const viewportWidth = Math.max(320, windowWidth - sideRailWidth * 2 - 24)
+  const viewportHeight = Math.max(320, windowHeight - gameTopInset - gameBottomInset)
 
   const translateX = currentLevel?.width > viewportWidth 
     ? Math.max(viewportWidth - currentLevel.width, Math.min(0, viewportWidth / 2 - gameState.player.position.x))
@@ -62,29 +67,39 @@ export function CintaRojaGame() {
 
       {/* Game Screen */}
       {(screen === 'playing' || screen === 'pause' || screen === 'dialogue' || screen === 'inventory') && (
-        <div className="relative w-full h-screen flex items-center justify-center bg-black">
+        <div className="relative w-full h-screen bg-black overflow-hidden">
           {/* Camera container with scroll */}
           <div 
-            className="relative overflow-hidden"
+            className="absolute flex items-center justify-center overflow-hidden"
             style={{
-              width: Math.min(currentLevel.width, viewportWidth),
-              height: Math.min(currentLevel.height, viewportHeight),
+              left: sideRailWidth,
+              right: sideRailWidth,
+              top: gameTopInset,
+              bottom: gameBottomInset,
             }}
           >
-            {/* Scrolling container */}
             <div
+              className="relative overflow-hidden"
               style={{
-                position: 'absolute',
-                transform: `translate(${translateX}px, ${translateY}px)`,
-                transition: 'transform 0.1s ease-out',
+                width: Math.min(currentLevel.width, viewportWidth),
+                height: Math.min(currentLevel.height, viewportHeight),
               }}
             >
-              <GameRenderer
-                level={currentLevel}
-                player={gameState.player}
-                glitchIntensity={gameState.glitchIntensity}
-                showVHSEffect={gameState.showVHSEffect}
-              />
+              {/* Scrolling container */}
+              <div
+                style={{
+                  position: 'absolute',
+                  transform: `translate(${translateX}px, ${translateY}px)`,
+                  transition: 'transform 0.1s ease-out',
+                }}
+              >
+                <GameRenderer
+                  level={currentLevel}
+                  player={gameState.player}
+                  glitchIntensity={gameState.glitchIntensity}
+                  showVHSEffect={gameState.showVHSEffect}
+                />
+              </div>
             </div>
           </div>
 
