@@ -641,6 +641,18 @@ export function useGameEngine() {
       }
       
       if (switchObj.type === 'valve') {
+        const valves = level.switches.filter(s => s.type === 'valve')
+        const valveIndex = valves.findIndex(s => s.id === switchObj.id)
+        const requiredRecordId = `record_${valveIndex + 1}`
+        const hasRequiredRecord = level.collectibles.some(c => c.id === requiredRecordId && c.collected)
+
+        if (!hasRequiredRecord) {
+          setDialogueQueue(['valve_record_required'])
+          setCurrentDialogueIndex(0)
+          setScreen('dialogue')
+          return prev
+        }
+
         setActiveValve(switchObj.id)
         setScreen('valve')
         return prev
@@ -864,10 +876,17 @@ export function useGameEngine() {
       const puzzle = level.puzzles.find(p => p.type === 'code' && p.name.includes('Valvula'))
       
       if (puzzle) {
-        const valveCode = level.switches
-          .filter(s => s.type === 'valve')
+        const valves = level.switches.filter(s => s.type === 'valve')
+        const hasAdjustedAllValves = valves.every(s => valveValues[s.id] !== undefined)
+        const valveCode = valves
           .map(s => valveValues[s.id] || 0)
           .join('')
+
+        if (!hasAdjustedAllValves) {
+          setActiveValve(null)
+          setScreen('playing')
+          return prev
+        }
         
         if (valveCode === puzzle.correctCode) {
           const newPuzzles = level.puzzles.map(p =>
