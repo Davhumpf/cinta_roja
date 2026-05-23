@@ -683,6 +683,10 @@ function InteractionOverlay({
   onValveChange?: (valveId: string, value: number) => void
   onSubmitValves?: () => void
 }) {
+  const valves = level.switches.filter((switchObj) => switchObj.type === 'valve')
+  const activeValveIndex = Math.max(0, valves.findIndex((valve) => valve.id === activeValve))
+  const visibleValves = activeValve ? valves.filter((valve) => valve.id === activeValve) : valves
+
   return (
     <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/35 p-4 pointer-events-auto backdrop-blur-[1px]">
       <TerminalPanel title={showInventory ? 'Inventory manifest' : activeValve ? 'Valve control' : 'Keypad entry'} code="INPUT" tone={activeValve ? 'cyan' : showInventory ? 'amber' : 'red'} Icon={Package} className="w-[min(34rem,calc(100vw-2rem))] p-5 sm:p-6">
@@ -711,10 +715,13 @@ function InteractionOverlay({
 
         {activeValve && (
           <div className="space-y-6">
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-3">
-              {level.switches.filter((switchObj) => switchObj.type === 'valve').map((valve, index) => (
+            <div className="border border-cyan-400/15 bg-cyan-950/10 p-3 text-center text-[10px] font-bold uppercase tracking-[0.2em] text-cyan-100/75">
+              Valvula {activeValveIndex + 1}: ajusta el valor segun el expediente encontrado
+            </div>
+            <div className="grid grid-cols-1 gap-4">
+              {visibleValves.map((valve) => (
                 <div key={valve.id} className="border border-cyan-400/15 bg-black/40 p-3 text-center">
-                  <div className="mb-3 text-[9px] font-bold uppercase tracking-[0.2em] text-cyan-300/60">vlv_{index + 1}</div>
+                  <div className="mb-3 text-[9px] font-bold uppercase tracking-[0.2em] text-cyan-300/60">vlv_{activeValveIndex + 1}</div>
                   <div className="mx-auto flex h-20 w-20 items-center justify-center rounded-full border-2 border-cyan-400/30 bg-cyan-950/10 shadow-[inset_0_0_18px_rgba(8,145,178,0.18)]">
                     <span className="text-3xl font-black text-cyan-200 text-glow-cyan">{valveValues[valve.id] ?? 0}</span>
                   </div>
@@ -736,7 +743,7 @@ function InteractionOverlay({
               ))}
             </div>
             <button onClick={onSubmitValves} className="h-12 w-full border border-cyan-300/60 bg-cyan-900/30 text-[11px] font-black uppercase tracking-[0.28em] text-cyan-100 transition-all hover:bg-cyan-800/50">
-              execute sequence
+              guardar ajuste
             </button>
           </div>
         )}

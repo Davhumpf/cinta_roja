@@ -5,7 +5,9 @@ import { useState } from 'react'
 
 interface AudioControlsProps {
   isMuted: boolean
+  isNarratorEnabled: boolean
   onToggleMute: () => void
+  onToggleNarrator: () => void
   onMasterVolume: (v: number) => void
   onMusicVolume: (v: number) => void
   onSFXVolume: (v: number) => void
@@ -13,13 +15,14 @@ interface AudioControlsProps {
 
 export function AudioControls({
   isMuted,
+  isNarratorEnabled,
   onToggleMute,
+  onToggleNarrator,
   onMasterVolume,
   onMusicVolume,
   onSFXVolume,
 }: AudioControlsProps) {
   const [open, setOpen] = useState(false)
-  const [narratorEnabled, setNarratorEnabled] = useState(true)
 
   return (
     <div className="fixed bottom-20 right-4 z-40 sm:bottom-6 font-mono">
@@ -54,16 +57,17 @@ export function AudioControls({
 
           <div className="mt-4 pt-3 border-t border-red-500/10">
             <button
-              onClick={() => setNarratorEnabled(v => !v)}
+              onClick={onToggleNarrator}
               className="flex items-center gap-2 w-full text-left group"
+              aria-label={isNarratorEnabled ? 'Desactivar narrador' : 'Activar narrador'}
             >
-              {narratorEnabled
+              {isNarratorEnabled
                 ? <Mic className="h-3 w-3 text-cyan-400" />
                 : <MicOff className="h-3 w-3 text-slate-600" />}
               <span className={`text-[9px] tracking-[0.2em] uppercase transition-colors ${
-                narratorEnabled ? 'text-cyan-300' : 'text-slate-600'
+                isNarratorEnabled ? 'text-cyan-300' : 'text-slate-600'
               }`}>
-                narrador_{narratorEnabled ? 'on' : 'off'}
+                narrador_{isNarratorEnabled ? 'on' : 'off'}
               </span>
             </button>
           </div>

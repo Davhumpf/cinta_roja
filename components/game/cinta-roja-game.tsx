@@ -16,7 +16,7 @@
  *  - Reemplaza components/game/cinta-roja-game.tsx con este archivo
  */
 
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { useGameEngine } from '@/hooks/use-game-engine'
 import { useAudio } from '@/hooks/use-audio'          // ← nuevo
 import { GameRenderer } from './game-renderer'
@@ -40,13 +40,23 @@ export function CintaRojaGame() {
     togglePause,
     toggleInventory,
     advanceDialogue,
+    selectChoice,
     getCurrentDialogue,
+    detectionCount,
+    submitCode,
+    submitValves,
+    activeValve,
+    valveValues,
+    setValveValues,
     maxUnlockedLevel,
     setScreen,
   } = useGameEngine()
 
   const audio = useAudio()                             // ← nuevo
   const [isMounted, setIsMounted] = useState(false)
+  const currentDialogue = getCurrentDialogue()
+  const wasSanityLowRef = useRef(false)
+  const lastSpokenDialogueIdRef = useRef<string | null>(null)
 
   // ── Mount ────────────────────────────────────────
   useEffect(() => { setIsMounted(true) }, [])
@@ -58,7 +68,7 @@ export function CintaRojaGame() {
     audio.init()
     window.removeEventListener('click', handleFirstInteraction)
     window.removeEventListener('keydown', handleFirstInteraction)
-  }, [audio])
+  }, [audio.init])
 
   useEffect(() => {
     window.addEventListener('click', handleFirstInteraction)
@@ -69,58 +79,85 @@ export function CintaRojaGame() {
     }
   }, [handleFirstInteraction])
 
-  // ── Música según pantalla ────────────────────────
+  // ── Música según pantalla y estado ───────────────
   useEffect(() => {
     if (!audio.isReady) return
-    const map: Record<string, Parameters<typeof audio.setMusicMode>[0]> = {
-      title:     'title',
-      playing:   'ambient',
-      pause:     'ambient',
-      dialogue:  'tension',
-      intro:     'tension',
-      inventory: 'ambient',
-      gameover:  'gameover',
-      victory:   'victory',
-    }
-    audio.setMusicMode(map[screen] ?? 'ambient')
-  }, [screen, audio.isReady, audio])
 
-  // ── Escalar tensión según stats del jugador ──────
-  useEffect(() => {
-    if (!audio.isReady || screen !== 'playing') return
-    const { health, sanity } = gameState.player
-    if (health < 25 || sanity < 25) {
-      audio.setMusicMode('horror')
-      if (sanity < 25) audio.playSound('sanity_low', 0.4)
+    const map: Record<string, Parameters<typeof audio.setMusicMode>[0]> = {
+      title: 'title',
+      playing: 'ambient',
+      pause: 'ambient',
+      dialogue: 'tension',
+      intro: 'tension',
+      inventory: 'ambient',
+      gameover: 'gameover',
+      victory: 'victory',
     }
+
+    let mode = map[screen] ?? 'ambient'
+    if (screen === 'playing') {
+      const { health, sanity } = gameState.player
+      if (health < 25 || sanity < 25) {
+        mode = 'horror'
+      } else if (currentLevel?.isDark && !currentLevel?.lightsOn) {
+        mode = 'dark'
+      }
+    }
+
+    audio.setMusicMode(mode)
   }, [
+    audio.isReady,
+    audio.setMusicMode,
+    currentLevel?.isDark,
+    currentLevel?.lightsOn,
     gameState.player.health,
     gameState.player.sanity,
     screen,
-    audio.isReady,
-    audio,
   ])
 
-  // ── Música de nivel oscuro ───────────────────────
+  // ── Alerta de cordura baja solo al entrar al estado ─
   useEffect(() => {
-    if (!audio.isReady || screen !== 'playing') return
-    if (currentLevel?.isDark && !currentLevel?.lightsOn) {
-      audio.setMusicMode('dark')
+    const isSanityLow = screen === 'playing' && gameState.player.sanity < 25
+    if (audio.isReady && isSanityLow && !wasSanityLowRef.current) {
+      audio.playSound('sanity_low', 0.4)
     }
-  }, [currentLevel?.isDark, currentLevel?.lightsOn, screen, audio.isReady, audio])
+    wasSanityLowRef.current = isSanityLow
+  }, [audio.isReady, audio.playSound, gameState.player.sanity, screen])
 
   // ── Narrador: hablar diálogos del Narrador ───────
   useEffect(() => {
-    if (screen !== 'dialogue' && screen !== 'intro') return
-    const dialogue = getCurrentDialogue()
+    if (screen !== 'dialogue' && screen !== 'intro') {
+      lastSpokenDialogueIdRef.current = null
+      audio.stopNarrator()
+      return
+    }
+
+    const dialogue = currentDialogue
     if (!dialogue) return
+    if (!audio.isNarratorEnabled) {
+      lastSpokenDialogueIdRef.current = null
+      return
+    }
+    if (lastSpokenDialogueIdRef.current === dialogue.id) return
+    lastSpokenDialogueIdRef.current = dialogue.id
+
     if (dialogue.speaker === 'Narrador' || dialogue.speaker === 'Sistema') {
       audio.speak(dialogue.text, {
         pitch: dialogue.speaker === 'Sistema' ? 0.7 : 0.5,
         rate: dialogue.speaker === 'Sistema' ? 0.95 : 0.8,
       })
+    } else {
+      audio.stopNarrator()
     }
-  }, [screen, getCurrentDialogue, audio])
+  }, [
+    audio.speak,
+    audio.stopNarrator,
+    audio.isNarratorEnabled,
+    currentDialogue?.id,
+    currentDialogue?.speaker,
+    currentDialogue?.text,
+    screen,
+  ])
 
   // ── SFX: pasos del jugador ───────────────────────
   useEffect(() => {
@@ -133,7 +170,7 @@ export function CintaRojaGame() {
     gameState.player.isSprinting,
     gameState.player.position,   // cambia en cada frame de movimiento
     audio.isReady,
-    audio,
+    audio.playFootstep,
     screen,
   ])
 
@@ -142,7 +179,7 @@ export function CintaRojaGame() {
     if (!audio.isReady) return
     if (gameState.isGameOver) audio.playSound('static_burst', 0.8)
     if (gameState.isVictory)  audio.playSound('level_complete', 0.7)
-  }, [gameState.isGameOver, gameState.isVictory, audio.isReady, audio])
+  }, [audio.isReady, audio.playSound, gameState.isGameOver, gameState.isVictory])
 
   // ── Loading screen ───────────────────────────────
   if (!isMounted) {
@@ -189,7 +226,7 @@ export function CintaRojaGame() {
       )}
 
       {/* Game Screen */}
-      {(screen === 'playing' || screen === 'pause' || screen === 'dialogue' || screen === 'inventory') && (
+      {(screen === 'playing' || screen === 'pause' || screen === 'dialogue' || screen === 'inventory' || screen === 'keypad' || screen === 'valve') && (
         <div className="relative w-full h-screen bg-black overflow-hidden">
           <div
             className="absolute flex items-center justify-center overflow-hidden"
@@ -217,6 +254,7 @@ export function CintaRojaGame() {
                   player={gameState.player}
                   glitchIntensity={gameState.glitchIntensity}
                   showVHSEffect={gameState.showVHSEffect}
+                  valveValues={valveValues}
                 />
               </div>
             </div>
@@ -225,16 +263,30 @@ export function CintaRojaGame() {
           <GameUI
             player={gameState.player}
             level={currentLevel}
-            currentDialogue={screen === 'dialogue' ? getCurrentDialogue() : null}
+            currentDialogue={screen === 'dialogue' ? currentDialogue : null}
             onAdvanceDialogue={() => {
               audio.playSound('dialogue_blip', 0.25)
               audio.stopNarrator()
               advanceDialogue()
             }}
+            onSelectChoice={selectChoice}
             totalTapes={gameState.totalTapesCollected}
             memoriesCount={gameState.memoriesUnlocked.length}
+            detectionCount={detectionCount}
+            codeInput={gameState.codeInput}
+            showKeypad={screen === 'keypad'}
+            onSubmitCode={submitCode}
             showInventory={screen === 'inventory'}
             onCloseInventory={toggleInventory}
+            activeValve={screen === 'valve' ? activeValve : null}
+            valveValues={valveValues}
+            onValveChange={(valveId, value) => {
+              setValveValues(prev => ({
+                ...prev,
+                [valveId]: value,
+              }))
+            }}
+            onSubmitValves={submitValves}
           />
 
           {screen === 'pause' && (
@@ -253,7 +305,7 @@ export function CintaRojaGame() {
       {screen === 'intro' && (
         <div className="relative w-full h-screen">
           <IntroScreen
-            dialogue={getCurrentDialogue()}
+            dialogue={currentDialogue}
             onAdvance={() => {
               audio.playSound('dialogue_blip', 0.2)
               audio.stopNarrator()
@@ -283,7 +335,9 @@ export function CintaRojaGame() {
       {/* Audio Controls HUD — siempre visible */}
       <AudioControls
         isMuted={audio.isMuted}
+        isNarratorEnabled={audio.isNarratorEnabled}
         onToggleMute={audio.toggleMute}
+        onToggleNarrator={audio.toggleNarrator}
         onMasterVolume={audio.setMasterVolume}
         onMusicVolume={audio.setMusicVolume}
         onSFXVolume={audio.setSFXVolume}
