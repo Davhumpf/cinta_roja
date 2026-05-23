@@ -40,7 +40,14 @@ export function CintaRojaGame() {
     togglePause,
     toggleInventory,
     advanceDialogue,
+    selectChoice,
     getCurrentDialogue,
+    detectionCount,
+    submitCode,
+    submitValves,
+    activeValve,
+    valveValues,
+    setValveValues,
     maxUnlockedLevel,
     setScreen,
   } = useGameEngine()
@@ -219,7 +226,7 @@ export function CintaRojaGame() {
       )}
 
       {/* Game Screen */}
-      {(screen === 'playing' || screen === 'pause' || screen === 'dialogue' || screen === 'inventory') && (
+      {(screen === 'playing' || screen === 'pause' || screen === 'dialogue' || screen === 'inventory' || screen === 'keypad' || screen === 'valve') && (
         <div className="relative w-full h-screen bg-black overflow-hidden">
           <div
             className="absolute flex items-center justify-center overflow-hidden"
@@ -247,6 +254,7 @@ export function CintaRojaGame() {
                   player={gameState.player}
                   glitchIntensity={gameState.glitchIntensity}
                   showVHSEffect={gameState.showVHSEffect}
+                  valveValues={valveValues}
                 />
               </div>
             </div>
@@ -261,10 +269,24 @@ export function CintaRojaGame() {
               audio.stopNarrator()
               advanceDialogue()
             }}
+            onSelectChoice={selectChoice}
             totalTapes={gameState.totalTapesCollected}
             memoriesCount={gameState.memoriesUnlocked.length}
+            detectionCount={detectionCount}
+            codeInput={gameState.codeInput}
+            showKeypad={screen === 'keypad'}
+            onSubmitCode={submitCode}
             showInventory={screen === 'inventory'}
             onCloseInventory={toggleInventory}
+            activeValve={screen === 'valve' ? activeValve : null}
+            valveValues={valveValues}
+            onValveChange={(valveId, value) => {
+              setValveValues(prev => ({
+                ...prev,
+                [valveId]: value,
+              }))
+            }}
+            onSubmitValves={submitValves}
           />
 
           {screen === 'pause' && (
