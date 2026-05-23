@@ -357,6 +357,11 @@ export const dialogues: Record<string, Dialogue> = {
     speaker: 'Adrian',
     text: 'El ultimo... "Ala cerrada en el ano 94, solo 1 enfermera permanece..." El tercero es 1. El codigo es 7-3-1.',
   },
+  'valve_record_required': {
+    id: 'valve_record_required',
+    speaker: 'Sistema',
+    text: '[ACCESO DENEGADO] Primero debes encontrar el expediente medico correspondiente para saber como ajustar esta valvula.',
+  },
   'marta_1': {
     id: 'marta_1',
     speaker: 'Marta Urrutia',
