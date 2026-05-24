@@ -117,6 +117,11 @@ export const dialogues: Record<string, Dialogue> = {
     speaker: 'Sistema',
     text: '[POTENCIADOR] Pulso firme: recuperas salud, cordura y stamina.',
   },
+  'tape_required': {
+    id: 'tape_required',
+    speaker: 'Adrián',
+    text: 'No puedo irme sin la cinta VHS. Tiene que haber una por aquí...',
+  },
 
   // Level 2 - La Calle Nocturna
   'intro_l2_1': {
