@@ -1107,7 +1107,9 @@ export const levels: Level[] = [
     backgroundColor: '#15171b',
     ambientColor: '#0c0e12',
     fogOfWar: true,
-    visibilityRadius: 210,
+    visibilityRadius: 165,
+    isDark: true,
+    lightsOn: false,
     obstacles: [
       { id: 'wall_top', type: 'wall', position: { x: 0, y: 0 }, width: 1200, height: 40, solid: true },
       { id: 'wall_bottom', type: 'wall', position: { x: 0, y: 860 }, width: 1200, height: 40, solid: true },

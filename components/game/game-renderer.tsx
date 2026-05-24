@@ -70,23 +70,34 @@ const getGlowColor = (tone: GlowTone): Rgb => {
 }
 
 let globalMaskCanvas: HTMLCanvasElement | null = null;
+let cachedFloorCanvas: Map<number, HTMLCanvasElement> = new Map();
 
 export function GameRenderer({ level, player, glitchIntensity, showVHSEffect, valveValues = {} }: GameRendererProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const animationRef = useRef<number>(0)
   const frameRef = useRef<number>(0)
+  const colorCacheRef = useRef<Record<string, string>>({})
 
   const drawPixelRect = useCallback((ctx: CanvasRenderingContext2D, x: number, y: number, width: number, height: number, color: string) => {
     ctx.fillStyle = color
     ctx.fillRect(Math.floor(x), Math.floor(y), Math.floor(width), Math.floor(height))
   }, [])
 
+  const cachedObstaclesRef = useRef<Map<number, Obstacle[]>>(new Map())
+  
   const getActiveObstacles = useCallback((currentLevel: Level) => {
+    const cached = cachedObstaclesRef.current.get(currentLevel.id)
+    if (cached) return cached
+    
+    let obstacles: Obstacle[]
     if (currentLevel.isDark && !currentLevel.lightsOn && currentLevel.darkMazeWalls?.length) {
-      return [...currentLevel.obstacles, ...currentLevel.darkMazeWalls]
+      obstacles = currentLevel.obstacles.concat(currentLevel.darkMazeWalls)
+    } else {
+      obstacles = currentLevel.obstacles
     }
-
-    return currentLevel.obstacles
+    
+    cachedObstaclesRef.current.set(currentLevel.id, obstacles)
+    return obstacles
   }, [])
 
   const getFlashlightOrigin = useCallback((currentPlayer: Player) => {
@@ -510,74 +521,84 @@ export function GameRenderer({ level, player, glitchIntensity, showVHSEffect, va
   }, [])
 
   const drawFloorTexture = useCallback((ctx: CanvasRenderingContext2D, currentLevel: Level, ambientColor: string) => {
-    ctx.save()
-    ctx.globalAlpha = currentLevel.lightsOn ? 0.82 : 0.58
+    // Check if we have a cached floor texture for this level
+    let floorCanvas = cachedFloorCanvas.get(currentLevel.id)
+    if (!floorCanvas) {
+      floorCanvas = document.createElement('canvas')
+      floorCanvas.width = currentLevel.width
+      floorCanvas.height = currentLevel.height
+      const fCtx = floorCanvas.getContext('2d', { willReadFrequently: false })!
 
-    for (let x = 0; x < currentLevel.width; x += FLOOR_TILE_SIZE) {
-      for (let y = 0; y < currentLevel.height; y += FLOOR_TILE_SIZE) {
-        const tileX = x / FLOOR_TILE_SIZE
-        const tileY = y / FLOOR_TILE_SIZE
-        const baseNoise = tileHash(tileX, tileY, currentLevel.id)
-        const coolNoise = tileHash(tileX, tileY, 16)
+      fCtx.globalAlpha = currentLevel.lightsOn ? 0.82 : 0.58
 
-        ctx.fillStyle = ambientColor
-        ctx.fillRect(x, y, FLOOR_TILE_SIZE, FLOOR_TILE_SIZE)
+      for (let x = 0; x < currentLevel.width; x += FLOOR_TILE_SIZE) {
+        for (let y = 0; y < currentLevel.height; y += FLOOR_TILE_SIZE) {
+          const tileX = x / FLOOR_TILE_SIZE
+          const tileY = y / FLOOR_TILE_SIZE
+          const baseNoise = tileHash(tileX, tileY, currentLevel.id)
+          const coolNoise = tileHash(tileX, tileY, 16)
 
-        ctx.fillStyle = baseNoise > 0.52
-          ? `rgba(18, 22, 34, ${0.1 + baseNoise * 0.08})`
-          : `rgba(0, 0, 0, ${0.05 + (1 - baseNoise) * 0.09})`
-        ctx.fillRect(x, y, FLOOR_TILE_SIZE, FLOOR_TILE_SIZE)
+          fCtx.fillStyle = ambientColor
+          fCtx.fillRect(x, y, FLOOR_TILE_SIZE, FLOOR_TILE_SIZE)
 
-        ctx.fillStyle = coolNoise > 0.64
-          ? `rgba(84, 97, 118, ${0.025 + coolNoise * 0.028})`
-          : `rgba(88, 22, 26, ${0.012 + coolNoise * 0.014})`
-        ctx.fillRect(x + 1, y + 1, FLOOR_TILE_SIZE - 2, FLOOR_TILE_SIZE - 2)
+          fCtx.fillStyle = baseNoise > 0.52
+            ? `rgba(18, 22, 34, ${0.1 + baseNoise * 0.08})`
+            : `rgba(0, 0, 0, ${0.05 + (1 - baseNoise) * 0.09})`
+          fCtx.fillRect(x, y, FLOOR_TILE_SIZE, FLOOR_TILE_SIZE)
 
-        ctx.strokeStyle = 'rgba(0, 0, 0, 0.2)'
-        ctx.lineWidth = 1
-        ctx.strokeRect(x + 0.5, y + 0.5, FLOOR_TILE_SIZE - 1, FLOOR_TILE_SIZE - 1)
+          fCtx.fillStyle = coolNoise > 0.64
+            ? `rgba(84, 97, 118, ${0.025 + coolNoise * 0.028})`
+            : `rgba(88, 22, 26, ${0.012 + coolNoise * 0.014})`
+          fCtx.fillRect(x + 1, y + 1, FLOOR_TILE_SIZE - 2, FLOOR_TILE_SIZE - 2)
 
-        const scuff = tileHash(tileX, tileY, 2)
-        if (scuff > 0.6) {
-          const sx = x + 3 + Math.floor(tileHash(tileX, tileY, 3) * 22)
-          const sy = y + 3 + Math.floor(tileHash(tileX, tileY, 4) * 22)
-          ctx.fillStyle = scuff > 0.84 ? 'rgba(0, 0, 0, 0.26)' : 'rgba(180, 190, 205, 0.035)'
-          ctx.fillRect(sx, sy, 5 + Math.floor(scuff * 10), 1)
-          ctx.fillRect(sx + 1, sy + 3, 2 + Math.floor(scuff * 6), 1)
-        }
+          fCtx.strokeStyle = 'rgba(0, 0, 0, 0.2)'
+          fCtx.lineWidth = 1
+          fCtx.strokeRect(x + 0.5, y + 0.5, FLOOR_TILE_SIZE - 1, FLOOR_TILE_SIZE - 1)
 
-        const stain = tileHash(tileX, tileY, 5)
-        if (stain > 0.88) {
-          ctx.fillStyle = `rgba(68, 9, 12, ${0.08 + stain * 0.08})`
-          ctx.beginPath()
-          ctx.ellipse(
-            x + 8 + tileHash(tileX, tileY, 6) * 16,
-            y + 8 + tileHash(tileX, tileY, 7) * 16,
-            5 + tileHash(tileX, tileY, 8) * 12,
-            2 + tileHash(tileX, tileY, 9) * 6,
-            tileHash(tileX, tileY, 10) * Math.PI,
-            0,
-            Math.PI * 2
-          )
-          ctx.fill()
-        }
+          const scuff = tileHash(tileX, tileY, 2)
+          if (scuff > 0.6) {
+            const sx = x + 3 + Math.floor(tileHash(tileX, tileY, 3) * 22)
+            const sy = y + 3 + Math.floor(tileHash(tileX, tileY, 4) * 22)
+            fCtx.fillStyle = scuff > 0.84 ? 'rgba(0, 0, 0, 0.26)' : 'rgba(180, 190, 205, 0.035)'
+            fCtx.fillRect(sx, sy, 5 + Math.floor(scuff * 10), 1)
+            fCtx.fillRect(sx + 1, sy + 3, 2 + Math.floor(scuff * 6), 1)
+          }
 
-        const crack = tileHash(tileX, tileY, 11)
-        if (crack < 0.16) {
-          const crackX = x + 4 + tileHash(tileX, tileY, 12) * 22
-          const crackY = y + 4 + tileHash(tileX, tileY, 13) * 22
-          ctx.strokeStyle = 'rgba(0, 0, 0, 0.28)'
-          ctx.lineWidth = 1
-          ctx.beginPath()
-          ctx.moveTo(crackX, crackY)
-          ctx.lineTo(crackX + 7 + crack * 18, crackY + 2 + tileHash(tileX, tileY, 14) * 10)
-          ctx.lineTo(crackX + 11 + crack * 10, crackY + 8 + tileHash(tileX, tileY, 15) * 13)
-          ctx.stroke()
+          const stain = tileHash(tileX, tileY, 5)
+          if (stain > 0.88) {
+            fCtx.fillStyle = `rgba(68, 9, 12, ${0.08 + stain * 0.08})`
+            fCtx.beginPath()
+            fCtx.ellipse(
+              x + 8 + tileHash(tileX, tileY, 6) * 16,
+              y + 8 + tileHash(tileX, tileY, 7) * 16,
+              5 + tileHash(tileX, tileY, 8) * 12,
+              2 + tileHash(tileX, tileY, 9) * 6,
+              tileHash(tileX, tileY, 10) * Math.PI,
+              0,
+              Math.PI * 2
+            )
+            fCtx.fill()
+          }
+
+          const crack = tileHash(tileX, tileY, 11)
+          if (crack < 0.16) {
+            const crackX = x + 4 + tileHash(tileX, tileY, 12) * 22
+            const crackY = y + 4 + tileHash(tileX, tileY, 13) * 22
+            fCtx.strokeStyle = 'rgba(0, 0, 0, 0.28)'
+            fCtx.lineWidth = 1
+            fCtx.beginPath()
+            fCtx.moveTo(crackX, crackY)
+            fCtx.lineTo(crackX + 7 + crack * 18, crackY + 2 + tileHash(tileX, tileY, 14) * 10)
+            fCtx.lineTo(crackX + 11 + crack * 10, crackY + 8 + tileHash(tileX, tileY, 15) * 13)
+            fCtx.stroke()
+          }
         }
       }
+
+      cachedFloorCanvas.set(currentLevel.id, floorCanvas)
     }
 
-    ctx.restore()
+    ctx.drawImage(floorCanvas, 0, 0)
   }, [])
 
   const drawMist = useCallback((ctx: CanvasRenderingContext2D, currentLevel: Level, frame: number, sanityPressure: number) => {
@@ -585,7 +606,7 @@ export function GameRenderer({ level, player, glitchIntensity, showVHSEffect, va
     ctx.globalCompositeOperation = 'screen'
 
     const mistAlpha = 0.035 + sanityPressure * 0.035
-    for (let i = 0; i < 5; i++) {
+    for (let i = 0; i < 3; i++) {
       const seed = currentLevel.id * 31 + i * 17
       const centerX = (hashNumber(seed) * currentLevel.width + Math.sin(frame * 0.004 + i) * 42 + currentLevel.width) % currentLevel.width
       const centerY = (hashNumber(seed + 3) * currentLevel.height + Math.cos(frame * 0.003 + i * 1.7) * 28 + currentLevel.height) % currentLevel.height
@@ -612,7 +633,7 @@ export function GameRenderer({ level, player, glitchIntensity, showVHSEffect, va
   const drawParticles = useCallback((ctx: CanvasRenderingContext2D, currentLevel: Level, currentPlayer: Player, frame: number) => {
     const sanityPressure = clamp((70 - currentPlayer.sanity) / 70, 0, 1)
     const hasFire = currentLevel.id >= 8 || currentLevel.hazardZones.some(hazard => hazard.type === 'fire')
-    const particleCount = Math.min(150, Math.max(70, Math.floor((currentLevel.width * currentLevel.height) / 12000), BASE_PARTICLE_COUNT))
+    const particleCount = Math.min(100, Math.max(50, Math.floor((currentLevel.width * currentLevel.height) / 15000)))
 
     drawMist(ctx, currentLevel, frame, sanityPressure)
 
@@ -652,7 +673,9 @@ export function GameRenderer({ level, player, glitchIntensity, showVHSEffect, va
       }
     }
 
-    for (const obstacle of activeObstacles) {
+    const lockedDoorsCount = Math.min(8, activeObstacles.filter(o => o.type === 'door' && !o.isOpen && (o.requiresKey || o.requiresCode)).length)
+    for (let i = 0; i < lockedDoorsCount; i++) {
+      const obstacle = activeObstacles[i]
       if (obstacle.type === 'door' && !obstacle.isOpen && (obstacle.requiresKey || obstacle.requiresCode)) {
         drawLight(ctx, obstacle.position.x + obstacle.width - 15, obstacle.position.y + obstacle.height / 2, 74, RED_LIGHT, 0.22 * pulse)
       }
@@ -700,7 +723,9 @@ export function GameRenderer({ level, player, glitchIntensity, showVHSEffect, va
   const drawMapDepth = useCallback((ctx: CanvasRenderingContext2D, activeObstacles: Obstacle[]) => {
     ctx.save()
 
-    for (const obstacle of activeObstacles) {
+    const depthCount = Math.min(50, activeObstacles.length)
+    for (let i = 0; i < depthCount; i++) {
+      const obstacle = activeObstacles[i]
       if (!obstacle.solid && obstacle.type !== 'furniture' && obstacle.type !== 'door') continue
 
       const { x, y } = obstacle.position
@@ -766,13 +791,6 @@ export function GameRenderer({ level, player, glitchIntensity, showVHSEffect, va
     ctx.fillRect(0, 0, width, height)
 
     ctx.globalCompositeOperation = 'screen'
-    const diagonal = ctx.createLinearGradient(0, 0, width, height)
-    diagonal.addColorStop(0, emergencyRevealActive ? 'rgba(255, 55, 30, 0.045)' : 'rgba(20, 52, 80, 0.035)')
-    diagonal.addColorStop(0.48, 'rgba(0, 0, 0, 0)')
-    diagonal.addColorStop(1, emergencyRevealActive ? 'rgba(255, 150, 40, 0.03)' : 'rgba(95, 12, 18, 0.04)')
-    ctx.fillStyle = diagonal
-    ctx.fillRect(0, 0, width, height)
-
     const pulse = 0.5 + Math.sin(frame * 0.025) * 0.5
     ctx.fillStyle = `rgba(130, 0, 16, ${0.018 + pulse * 0.015})`
     ctx.fillRect(0, 0, width, height)
@@ -2001,6 +2019,13 @@ export function GameRenderer({ level, player, glitchIntensity, showVHSEffect, va
     return () => {
       if (animationRef.current) {
         cancelAnimationFrame(animationRef.current)
+      }
+      // Clean up floor cache if too large
+      if (cachedFloorCanvas.size > 12) {
+        cachedFloorCanvas.clear()
+      }
+      if (cachedObstaclesRef.current.size > 12) {
+        cachedObstaclesRef.current.clear()
       }
     }
   }, [level, player, glitchIntensity, showVHSEffect, valveValues, drawPlayer, drawEnemy, drawCollectible, drawDecoration, drawObstacle, drawSwitch, drawHazard, drawNPC, drawExit, drawFloorTexture, drawMapDepth, drawBackgroundBlur, applyDepthLayers, drawAtmosphere, drawPlayerLight, drawRedGlowLights, drawParticles, drawEmergencyReveal, drawFogOfWar, drawSceneColorGrade, drawSanityDistortion, drawVignette, drawNoise, drawVHSEffect, getActiveObstacles, getEmergencyLightReveal])
