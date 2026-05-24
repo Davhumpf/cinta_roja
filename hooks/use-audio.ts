@@ -1,6 +1,6 @@
 'use client'
 
-import { useRef, useCallback, useEffect, useMemo, useState } from 'react'
+import { useRef, useCallback, useEffect, useState } from 'react'
 
 // ─────────────────────────────────────────────
 // Types
@@ -23,6 +23,7 @@ type SFXType =
   | 'unhide'
   | 'glitch'
   | 'dialogue_blip'
+  | 'voice_tick'
   | 'keypad_press'
   | 'keypad_success'
   | 'keypad_fail'
@@ -66,43 +67,214 @@ function createFilter(
   return f
 }
 
+type VoiceProfile = {
+  base: number
+  formantA: number
+  formantB: number
+  wave: OscillatorType
+  gain: number
+  noise: number
+  duration: number
+  pitchFall: number
+  vibrato: number
+}
+
+function normalizeSpeaker(speaker: string) {
+  return speaker
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLowerCase()
+}
+
+function hashSpeaker(speaker: string) {
+  let hash = 0
+  for (let i = 0; i < speaker.length; i++) {
+    hash = (hash * 31 + speaker.charCodeAt(i)) % 997
+  }
+
+  return hash
+}
+
+function getSpeakerVoiceProfile(speaker: string): VoiceProfile {
+  const normalized = normalizeSpeaker(speaker)
+
+  if (normalized.includes('sistema')) {
+    return {
+      base: 440,
+      formantA: 980,
+      formantB: 2140,
+      wave: 'square',
+      gain: 0.09,
+      noise: 0.025,
+      duration: 0.075,
+      pitchFall: 0.58,
+      vibrato: 22,
+    }
+  }
+
+  if (normalized.includes('narrador') || normalized.includes('adrian')) {
+    return {
+      base: 118,
+      formantA: 430,
+      formantB: 920,
+      wave: 'sawtooth',
+      gain: 0.11,
+      noise: 0.035,
+      duration: 0.105,
+      pitchFall: 0.76,
+      vibrato: 12,
+    }
+  }
+
+  if (normalized.includes('operador') || normalized.includes('???') || normalized.includes('eco')) {
+    return {
+      base: 82,
+      formantA: 360,
+      formantB: 760,
+      wave: 'sawtooth',
+      gain: 0.12,
+      noise: 0.05,
+      duration: 0.12,
+      pitchFall: 0.68,
+      vibrato: 18,
+    }
+  }
+
+  if (normalized.includes('nino') || normalized.includes('nicolas')) {
+    return {
+      base: 280,
+      formantA: 820,
+      formantB: 1600,
+      wave: 'triangle',
+      gain: 0.085,
+      noise: 0.018,
+      duration: 0.085,
+      pitchFall: 0.95,
+      vibrato: 10,
+    }
+  }
+
+  const hash = hashSpeaker(speaker)
+  return {
+    base: 190 + (hash % 150),
+    formantA: 640 + (hash % 260),
+    formantB: 1280 + (hash % 520),
+    wave: hash % 2 === 0 ? 'triangle' : 'sine',
+    gain: 0.08,
+    noise: 0.018,
+    duration: 0.082,
+    pitchFall: 0.88,
+    vibrato: 8,
+  }
+}
+
+function playVoiceTick(
+  ctx: AudioContext,
+  dest: AudioNode,
+  speaker: string,
+  char: string,
+  index: number,
+  volume = 0.9,
+) {
+  if (!/[a-záéíóúñ0-9]/i.test(char)) return
+
+  const now = ctx.currentTime
+  const profile = getSpeakerVoiceProfile(speaker)
+  const vowelLift = /[aeiouáéíóú]/i.test(char) ? 46 : -12
+  const jitter = ((char.charCodeAt(0) + index * 19) % 59) - 29
+  const freq = Math.max(80, profile.base + vowelLift + jitter)
+  const dur = profile.duration + (/[mnrl]/i.test(char) ? 0.026 : 0)
+  const consonantNoise = /[bcdfghjkpqrstvwxyzñ]/i.test(char) ? 1.55 : 0.75
+
+  const voiceGain = createGain(ctx, 0)
+  const osc = createOsc(ctx, freq, profile.wave)
+  const osc2 = createOsc(ctx, freq * 1.012, profile.wave, -5)
+  const vibrato = createOsc(ctx, 38 + (index % 5) * 3, 'sine')
+  const vibratoGain = createGain(ctx, profile.vibrato)
+  const formantA = createFilter(ctx, 'bandpass', profile.formantA + vowelLift * 3, 6)
+  const formantB = createFilter(ctx, 'bandpass', profile.formantB + jitter * 4, 4)
+  const aGain = createGain(ctx, 0.9)
+  const bGain = createGain(ctx, 0.46)
+
+  vibrato.connect(vibratoGain)
+  vibratoGain.connect(osc.detune)
+  vibratoGain.connect(osc2.detune)
+  osc.connect(formantA)
+  osc2.connect(formantA)
+  osc.connect(formantB)
+  osc2.connect(formantB)
+  formantA.connect(aGain)
+  formantB.connect(bGain)
+  aGain.connect(voiceGain)
+  bGain.connect(voiceGain)
+
+  if (profile.noise > 0) {
+    const noiseLength = Math.max(1, Math.floor(ctx.sampleRate * dur))
+    const noiseBuffer = ctx.createBuffer(1, noiseLength, ctx.sampleRate)
+    const data = noiseBuffer.getChannelData(0)
+    for (let i = 0; i < noiseLength; i++) {
+      const env = Math.sin((i / noiseLength) * Math.PI)
+      data[i] = (Math.random() * 2 - 1) * env
+    }
+
+    const noise = ctx.createBufferSource()
+    const noiseFilter = createFilter(ctx, 'bandpass', profile.formantB * 0.85, 2.8)
+    const noiseGain = createGain(ctx, profile.noise * consonantNoise)
+    noise.buffer = noiseBuffer
+    noise.connect(noiseFilter)
+    noiseFilter.connect(noiseGain)
+    noiseGain.connect(voiceGain)
+    noise.start(now)
+    noise.stop(now + dur)
+  }
+
+  const bodyOsc = createOsc(ctx, Math.max(45, freq * 0.48), 'triangle', -8)
+  const bodyFilter = createFilter(ctx, 'lowpass', profile.formantA * 0.95, 1.2)
+  const bodyGain = createGain(ctx, volume * profile.gain * 0.38)
+  bodyOsc.connect(bodyFilter)
+  bodyFilter.connect(bodyGain)
+  bodyGain.connect(voiceGain)
+  bodyOsc.start(now)
+  bodyGain.gain.setValueAtTime(volume * profile.gain * 0.38, now)
+  bodyGain.gain.exponentialRampToValueAtTime(0.001, now + dur)
+  bodyOsc.stop(now + dur + 0.01)
+
+  voiceGain.connect(dest)
+  vibrato.start(now)
+  osc.start(now)
+  osc2.start(now)
+  voiceGain.gain.setValueAtTime(0, now)
+  voiceGain.gain.linearRampToValueAtTime(volume * profile.gain, now + 0.01)
+  voiceGain.gain.exponentialRampToValueAtTime(0.001, now + dur)
+  osc.frequency.exponentialRampToValueAtTime(Math.max(70, freq * profile.pitchFall), now + dur)
+  osc2.frequency.exponentialRampToValueAtTime(Math.max(70, freq * profile.pitchFall * 1.01), now + dur)
+  osc.stop(now + dur + 0.01)
+  osc2.stop(now + dur + 0.01)
+  vibrato.stop(now + dur + 0.01)
+}
+
 // ─────────────────────────────────────────────
 // Procedural music layers
 // ─────────────────────────────────────────────
 interface MusicLayer {
   nodes: AudioNode[]
   gainNode: GainNode
-  intervalId?: ReturnType<typeof setInterval>
-  intervalIds?: ReturnType<typeof setInterval>[]
-}
-
-const clamp01 = (value: number) => Math.max(0, Math.min(1, value))
-
-function clearMusicLayer(layer: MusicLayer | null) {
-  if (layer?.intervalId) clearInterval(layer.intervalId)
-  layer?.intervalIds?.forEach(clearInterval)
 }
 
 function buildDroneLayer(ctx: AudioContext, dest: AudioNode): MusicLayer {
   const masterGain = createGain(ctx, 0)
-  const freqs = [27.5, 41.2, 55, 58.3, 82.5, 110.8]
+  const freqs = [27.5, 55, 82.5, 110]
   const nodes: AudioNode[] = [masterGain]
 
   freqs.forEach((freq, i) => {
-    const osc = createOsc(ctx, freq, i % 2 === 0 ? 'sawtooth' : 'triangle', i * 5 - 12)
-    const gain = createGain(ctx, 0.035 - i * 0.003)
-    const filter = createFilter(ctx, 'lowpass', 130 + i * 26, 1.2)
-    const wobble = createOsc(ctx, 0.035 + i * 0.011, 'sine')
-    const wobbleGain = createGain(ctx, 5 + i * 1.3)
-
-    wobble.connect(wobbleGain)
-    wobbleGain.connect(osc.detune)
+    const osc = createOsc(ctx, freq, 'sawtooth', i * 7)
+    const gain = createGain(ctx, 0.06 - i * 0.01)
+    const filter = createFilter(ctx, 'lowpass', 180 + i * 40, 0.8)
     osc.connect(filter)
     filter.connect(gain)
     gain.connect(masterGain)
-    wobble.start()
     osc.start()
-    nodes.push(osc, gain, filter, wobble, wobbleGain)
+    nodes.push(osc, gain, filter)
   })
 
   masterGain.connect(dest)
@@ -153,153 +325,20 @@ function buildPulseLayer(ctx: AudioContext, dest: AudioNode): MusicLayer {
 
 function buildMelodyLayer(ctx: AudioContext, dest: AudioNode): MusicLayer {
   const masterGain = createGain(ctx, 0)
-  const osc1 = createOsc(ctx, 220, 'sine', -14)
-  const osc2 = createOsc(ctx, 233.1, 'sine', 9)
-  const osc3 = createOsc(ctx, 311.1, 'triangle', -6)
-  const g1 = createGain(ctx, 0.022)
-  const g2 = createGain(ctx, 0.018)
-  const g3 = createGain(ctx, 0.012)
-  const filter = createFilter(ctx, 'bandpass', 560, 1.8)
-  const wobble = createOsc(ctx, 0.07, 'sine')
-  const wobbleGain = createGain(ctx, 80)
+  // Eerie high pad using two detuned sines
+  const osc1 = createOsc(ctx, 220, 'sine', -8)
+  const osc2 = createOsc(ctx, 220, 'sine', 8)
+  const g1 = createGain(ctx, 0.04)
+  const g2 = createGain(ctx, 0.04)
+  const filter = createFilter(ctx, 'highpass', 180, 0.7)
 
   osc1.connect(g1); g1.connect(filter)
   osc2.connect(g2); g2.connect(filter)
-  osc3.connect(g3); g3.connect(filter)
-  wobble.connect(wobbleGain); wobbleGain.connect(filter.frequency)
   filter.connect(masterGain)
   masterGain.connect(dest)
-  osc1.start(); osc2.start(); osc3.start(); wobble.start()
+  osc1.start(); osc2.start()
 
-  return { nodes: [osc1, osc2, osc3, g1, g2, g3, filter, wobble, wobbleGain, masterGain], gainNode: masterGain }
-}
-
-function buildDissonanceLayer(ctx: AudioContext, dest: AudioNode): MusicLayer {
-  const masterGain = createGain(ctx, 0)
-  const shiverGain = createGain(ctx, 0.018)
-  const subGain = createGain(ctx, 0.03)
-  const filter = createFilter(ctx, 'lowpass', 240, 1.6)
-  const lfo = createOsc(ctx, 0.19, 'sine')
-  const lfoGain = createGain(ctx, 0.01)
-
-  const beatingPairs = [
-    [92.5, 93.8],
-    [138.6, 146.8],
-    [184.9, 185.7],
-  ]
-  const nodes: AudioNode[] = [masterGain, shiverGain, subGain, filter, lfo, lfoGain]
-
-  beatingPairs.forEach(([a, b], index) => {
-    const oscA = createOsc(ctx, a, 'sawtooth', -3 + index)
-    const oscB = createOsc(ctx, b, 'triangle', 2 - index)
-    const pairGain = createGain(ctx, 0.012 - index * 0.002)
-    oscA.connect(pairGain)
-    oscB.connect(pairGain)
-    pairGain.connect(filter)
-    oscA.start()
-    oscB.start()
-    nodes.push(oscA, oscB, pairGain)
-  })
-
-  const sub = createOsc(ctx, 36.7, 'sine', -4)
-  sub.connect(subGain)
-  subGain.connect(masterGain)
-  sub.start()
-  nodes.push(sub)
-
-  lfo.connect(lfoGain)
-  lfoGain.connect(shiverGain.gain)
-  lfo.start()
-  filter.connect(shiverGain)
-  shiverGain.connect(masterGain)
-  masterGain.connect(dest)
-
-  return { nodes, gainNode: masterGain }
-}
-
-function buildWhisperLayer(ctx: AudioContext, dest: AudioNode): MusicLayer {
-  const masterGain = createGain(ctx, 0)
-  masterGain.connect(dest)
-
-  const whisper = () => {
-    const now = ctx.currentTime
-    const duration = 0.75 + Math.random() * 1.9
-    const buffer = ctx.createBuffer(1, Math.floor(ctx.sampleRate * duration), ctx.sampleRate)
-    const data = buffer.getChannelData(0)
-    let last = 0
-
-    for (let i = 0; i < data.length; i++) {
-      const white = Math.random() * 2 - 1
-      last = last * 0.92 + white * 0.08
-      const breathEnvelope = Math.sin((i / data.length) * Math.PI)
-      data[i] = last * breathEnvelope * 0.9
-    }
-
-    const source = ctx.createBufferSource()
-    source.buffer = buffer
-    source.playbackRate.value = 0.65 + Math.random() * 0.5
-
-    const band = createFilter(ctx, 'bandpass', 900 + Math.random() * 1250, 3.5)
-    const low = createFilter(ctx, 'lowpass', 2100 + Math.random() * 900, 0.9)
-    const gain = createGain(ctx, 0)
-    const pan = ctx.createStereoPanner()
-    pan.pan.value = Math.random() * 1.4 - 0.7
-
-    source.connect(band)
-    band.connect(low)
-    low.connect(gain)
-    gain.connect(pan)
-    pan.connect(masterGain)
-
-    gain.gain.setValueAtTime(0, now)
-    gain.gain.linearRampToValueAtTime(0.07 + Math.random() * 0.05, now + 0.18)
-    gain.gain.exponentialRampToValueAtTime(0.001, now + duration)
-    source.start(now)
-    source.stop(now + duration + 0.05)
-  }
-
-  const intervalId = setInterval(whisper, 2600 + Math.random() * 2200)
-  return { nodes: [masterGain], gainNode: masterGain, intervalId }
-}
-
-function buildIntrusionLayer(ctx: AudioContext, dest: AudioNode): MusicLayer {
-  const masterGain = createGain(ctx, 0)
-  const delay = ctx.createDelay(1.2)
-  const feedback = createGain(ctx, 0.18)
-  const filter = createFilter(ctx, 'bandpass', 1200, 2.2)
-
-  delay.delayTime.value = 0.18
-  delay.connect(feedback)
-  feedback.connect(delay)
-  delay.connect(filter)
-  filter.connect(masterGain)
-  masterGain.connect(dest)
-
-  const knock = () => {
-    const now = ctx.currentTime
-    const repeats = Math.random() > 0.72 ? 2 : 1
-
-    for (let i = 0; i < repeats; i++) {
-      const t = now + i * (0.11 + Math.random() * 0.12)
-      const osc = createOsc(ctx, 260 + Math.random() * 740, Math.random() > 0.5 ? 'triangle' : 'sine')
-      const gain = createGain(ctx, 0)
-      const hitFilter = createFilter(ctx, 'bandpass', 520 + Math.random() * 1600, 4)
-
-      osc.connect(hitFilter)
-      hitFilter.connect(gain)
-      gain.connect(delay)
-      gain.connect(masterGain)
-      osc.start(t)
-      gain.gain.setValueAtTime(0, t)
-      gain.gain.linearRampToValueAtTime(0.08 + Math.random() * 0.06, t + 0.01)
-      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.18 + Math.random() * 0.18)
-      osc.frequency.exponentialRampToValueAtTime(45 + Math.random() * 80, t + 0.2)
-      osc.stop(t + 0.4)
-    }
-  }
-
-  const intervalId = setInterval(knock, 4200 + Math.random() * 3600)
-  return { nodes: [masterGain, delay, feedback, filter], gainNode: masterGain, intervalId }
+  return { nodes: [osc1, osc2, g1, g2, filter, masterGain], gainNode: masterGain }
 }
 
 function buildHeartbeatLayer(ctx: AudioContext, dest: AudioNode): MusicLayer {
@@ -336,7 +375,8 @@ function buildHeartbeatLayer(ctx: AudioContext, dest: AudioNode): MusicLayer {
   return {
     nodes: [masterGain],
     gainNode: masterGain,
-    intervalId: id,
+    // @ts-ignore — store interval id for cleanup
+    _intervalId: id,
   }
 }
 
@@ -517,6 +557,12 @@ function playSFX(ctx: AudioContext, dest: AudioNode, type: SFXType, volume = 0.6
       short(osc, g, 0.05)
       break
     }
+    case 'voice_tick': {
+      const osc = createOsc(ctx, 320 + Math.random() * 90, 'sine')
+      const g = createGain(ctx, v * 0.05)
+      short(osc, g, 0.035)
+      break
+    }
     case 'keypad_press': {
       const osc = createOsc(ctx, 700 + Math.random() * 300, 'sine')
       const g = createGain(ctx, v * 0.12)
@@ -634,37 +680,22 @@ export function useAudio() {
   const staticRef = useRef<MusicLayer | null>(null)
   const pulseRef = useRef<MusicLayer | null>(null)
   const melodyRef = useRef<MusicLayer | null>(null)
-  const dissonanceRef = useRef<MusicLayer | null>(null)
-  const whisperRef = useRef<MusicLayer | null>(null)
-  const intrusionRef = useRef<MusicLayer | null>(null)
   const heartbeatRef = useRef<MusicLayer | null>(null)
 
   // External audio element
   const extAudioRef = useRef<HTMLAudioElement | null>(null)
 
   const currentModeRef = useRef<MusicMode>('silence')
-  const masterVolumeRef = useRef(0.82)
-  const musicVolumeRef = useRef(0.65)
-  const sfxVolumeRef = useRef(1)
-  const isMutedRef = useRef(false)
   const [isReady, setIsReady] = useState(false)
   const [isMuted, setIsMuted] = useState(false)
-  const [isNarratorEnabled, setIsNarratorEnabledState] = useState(true)
   const footstepTimerRef = useRef<number>(0)
 
   // SpeechSynthesis narrator
   const narratorRef = useRef<SpeechSynthesisUtterance | null>(null)
-  const narratorEnabledRef = useRef(true)
 
   // ── Init AudioContext ──────────────────────
   const init = useCallback(() => {
-    if (ctxRef.current) {
-      if (ctxRef.current.state === 'suspended') {
-        void ctxRef.current.resume()
-      }
-      return
-    }
-
+    if (ctxRef.current) return
     const ctx = new (window.AudioContext || (window as any).webkitAudioContext)()
     ctxRef.current = ctx
 
@@ -677,15 +708,15 @@ export function useAudio() {
     comp.release.value = 0.15
     comp.connect(ctx.destination)
 
-    const master = createGain(ctx, isMutedRef.current ? 0 : masterVolumeRef.current)
+    const master = createGain(ctx, 0.82)
     master.connect(comp)
     masterGainRef.current = master
 
-    const sfxGain = createGain(ctx, sfxVolumeRef.current)
+    const sfxGain = createGain(ctx, 1)
     sfxGain.connect(master)
     sfxGainRef.current = sfxGain
 
-    const musicGain = createGain(ctx, musicVolumeRef.current)
+    const musicGain = createGain(ctx, 0.65)
     musicGain.connect(master)
     musicGainRef.current = musicGain
 
@@ -710,14 +741,8 @@ export function useAudio() {
     staticRef.current = buildStaticLayer(ctx, musicGain)
     pulseRef.current = buildPulseLayer(ctx, musicGain)
     melodyRef.current = buildMelodyLayer(ctx, musicGain)
-    dissonanceRef.current = buildDissonanceLayer(ctx, musicGain)
-    whisperRef.current = buildWhisperLayer(ctx, musicGain)
-    intrusionRef.current = buildIntrusionLayer(ctx, musicGain)
     heartbeatRef.current = buildHeartbeatLayer(ctx, musicGain)
 
-    if (ctx.state === 'suspended') {
-      void ctx.resume()
-    }
     setIsReady(true)
   }, [])
 
@@ -738,13 +763,6 @@ export function useAudio() {
     }
   }, [])
 
-  const syncExternalVolume = useCallback(() => {
-    if (!extAudioRef.current) return
-    extAudioRef.current.volume = isMutedRef.current
-      ? 0
-      : clamp01(masterVolumeRef.current * musicVolumeRef.current * 0.85)
-  }, [])
-
   const playExternal = useCallback((url: string) => {
     stopExternal()
     if (!extAudioRef.current) {
@@ -752,9 +770,9 @@ export function useAudio() {
       extAudioRef.current.loop = true
     }
     extAudioRef.current.src = url
-    syncExternalVolume()
+    extAudioRef.current.volume = 0.55
     extAudioRef.current.play().catch(() => {/* autoplay blocked */})
-  }, [stopExternal, syncExternalVolume])
+  }, [stopExternal])
 
   // ── Set music mode ────────────────────────
   const setMusicMode = useCallback((mode: MusicMode) => {
@@ -770,17 +788,17 @@ export function useAudio() {
     }
 
     // Procedural layer targets per mode
-    // [drone, static, pulse, melody, dissonance, whisper, intrusion, heartbeat]
-    const targets: Record<MusicMode, [number, number, number, number, number, number, number, number]> = {
-      silence:  [0,    0,    0,    0,    0,    0,    0,    0   ],
-      title:    [0.42, 0.08, 0,    0.18, 0.20, 0.04, 0.02, 0   ],
-      ambient:  [0.44, 0.08, 0.02, 0.12, 0.24, 0.05, 0.03, 0   ],
-      tension:  [0.60, 0.18, 0.22, 0.20, 0.45, 0.14, 0.12, 0.02],
-      chase:    [0.76, 0.30, 0.62, 0.03, 0.55, 0.06, 0.18, 0.16],
-      horror:   [0.86, 0.34, 0.32, 0.08, 0.70, 0.22, 0.22, 0.28],
-      dark:     [0.82, 0.28, 0.08, 0.02, 0.62, 0.20, 0.12, 0.12],
-      victory:  [0.08, 0,    0,    0.35, 0.05, 0,    0,    0   ],
-      gameover: [0.70, 0.60, 0.15, 0,    0.65, 0.28, 0.22, 0.40],
+    // [drone, static, pulse, melody, heartbeat]
+    const targets: Record<MusicMode, [number, number, number, number, number]> = {
+      silence:   [0,    0,    0,    0,    0   ],
+      title:     [0.6,  0.2,  0,    0.3,  0   ],
+      ambient:   [0.5,  0.1,  0.05, 0.15, 0   ],
+      tension:   [0.7,  0.3,  0.35, 0.2,  0   ],
+      chase:     [0.85, 0.45, 0.8,  0,    0   ],
+      horror:    [0.9,  0.6,  0.5,  0.1,  0   ],
+      dark:      [1.0,  0.35, 0.15, 0,    0   ],
+      victory:   [0.1,  0,    0,    0.6,  0   ],
+      gameover:  [0.8,  0.7,  0.2,  0,    0.4 ],
     }
 
     const t = targets[mode]
@@ -789,10 +807,7 @@ export function useAudio() {
     ramp(staticRef.current?.gainNode ?? null, t[1], speed)
     ramp(pulseRef.current?.gainNode ?? null, t[2], speed)
     ramp(melodyRef.current?.gainNode ?? null, t[3], speed)
-    ramp(dissonanceRef.current?.gainNode ?? null, t[4], speed)
-    ramp(whisperRef.current?.gainNode ?? null, t[5], speed)
-    ramp(intrusionRef.current?.gainNode ?? null, t[6], speed)
-    ramp(heartbeatRef.current?.gainNode ?? null, t[7], speed)
+    ramp(heartbeatRef.current?.gainNode ?? null, t[4], speed)
   }, [isReady, ramp, playExternal, stopExternal])
 
   // ── Play SFX ──────────────────────────────
@@ -802,6 +817,14 @@ export function useAudio() {
       void ctxRef.current.resume()
     }
     playSFX(ctxRef.current, sfxGainRef.current, type, volume)
+  }, [isReady])
+
+  const playVoiceBlip = useCallback((speaker: string, char: string, index: number) => {
+    if (!isReady || !ctxRef.current || !sfxGainRef.current) return
+    if (ctxRef.current.state === 'suspended') {
+      void ctxRef.current.resume()
+    }
+    playVoiceTick(ctxRef.current, sfxGainRef.current, speaker, char, index)
   }, [isReady])
 
   // ── Footstep throttle ─────────────────────
@@ -814,11 +837,6 @@ export function useAudio() {
   }, [playSound])
 
   // ── Narrator (SpeechSynthesis) ────────────
-  const stopNarrator = useCallback(() => {
-    window.speechSynthesis?.cancel()
-    narratorRef.current = null
-  }, [])
-
   const speak = useCallback((text: string, options?: {
     rate?: number
     pitch?: number
@@ -826,7 +844,6 @@ export function useAudio() {
     lang?: string
     voiceName?: string
   }) => {
-    if (isMutedRef.current || !narratorEnabledRef.current) return
     if (!window.speechSynthesis) return
     window.speechSynthesis.cancel()
 
@@ -849,44 +866,31 @@ export function useAudio() {
     window.speechSynthesis.speak(utt)
   }, [])
 
-  const setNarratorEnabled = useCallback((enabled: boolean) => {
-    narratorEnabledRef.current = enabled
-    setIsNarratorEnabledState(enabled)
-    if (!enabled) stopNarrator()
-  }, [stopNarrator])
-
-  const toggleNarrator = useCallback(() => {
-    setNarratorEnabled(!narratorEnabledRef.current)
-  }, [setNarratorEnabled])
+  const stopNarrator = useCallback(() => {
+    window.speechSynthesis?.cancel()
+  }, [])
 
   // ── Toggle mute ───────────────────────────
   const toggleMute = useCallback(() => {
-    const next = !isMutedRef.current
-    isMutedRef.current = next
+    if (!masterGainRef.current || !ctxRef.current) return
+    const next = !isMuted
     setIsMuted(next)
-    ramp(masterGainRef.current, next ? 0 : masterVolumeRef.current, 0.3)
-    syncExternalVolume()
+    ramp(masterGainRef.current, next ? 0 : 0.82, 0.3)
     if (next) stopNarrator()
-  }, [ramp, stopNarrator, syncExternalVolume])
+  }, [isMuted, ramp, stopNarrator])
 
   // ── Volume controls ───────────────────────
   const setMasterVolume = useCallback((v: number) => {
-    masterVolumeRef.current = clamp01(v)
-    if (!isMutedRef.current) {
-      ramp(masterGainRef.current, masterVolumeRef.current, 0.3)
-    }
-    syncExternalVolume()
-  }, [ramp, syncExternalVolume])
+    ramp(masterGainRef.current, Math.max(0, Math.min(1, v)), 0.3)
+  }, [ramp])
 
   const setMusicVolume = useCallback((v: number) => {
-    musicVolumeRef.current = clamp01(v)
-    ramp(musicGainRef.current, musicVolumeRef.current, 0.3)
-    syncExternalVolume()
-  }, [ramp, syncExternalVolume])
+    ramp(musicGainRef.current, Math.max(0, Math.min(1, v)), 0.3)
+    if (extAudioRef.current) extAudioRef.current.volume = Math.max(0, Math.min(1, v * 0.85))
+  }, [ramp])
 
   const setSFXVolume = useCallback((v: number) => {
-    sfxVolumeRef.current = clamp01(v)
-    ramp(sfxGainRef.current, sfxVolumeRef.current, 0.1)
+    ramp(sfxGainRef.current, Math.max(0, Math.min(1, v)), 0.1)
   }, [ramp])
 
   // ── Cleanup ───────────────────────────────
@@ -894,49 +898,25 @@ export function useAudio() {
     return () => {
       stopExternal()
       stopNarrator()
-      clearMusicLayer(droneRef.current)
-      clearMusicLayer(staticRef.current)
-      clearMusicLayer(pulseRef.current)
-      clearMusicLayer(melodyRef.current)
-      clearMusicLayer(dissonanceRef.current)
-      clearMusicLayer(whisperRef.current)
-      clearMusicLayer(intrusionRef.current)
-      clearMusicLayer(heartbeatRef.current)
+      // @ts-ignore
+      if (heartbeatRef.current?._intervalId) clearInterval(heartbeatRef.current._intervalId)
       ctxRef.current?.close()
     }
   }, [stopExternal, stopNarrator])
 
-  return useMemo(() => ({
+  return {
     init,
     isReady,
     isMuted,
-    isNarratorEnabled,
     toggleMute,
     setMusicMode,
     playSound,
+    playVoiceBlip,
     playFootstep,
     speak,
     stopNarrator,
-    setNarratorEnabled,
-    toggleNarrator,
     setMasterVolume,
     setMusicVolume,
     setSFXVolume,
-  }), [
-    init,
-    isReady,
-    isMuted,
-    isNarratorEnabled,
-    toggleMute,
-    setMusicMode,
-    playSound,
-    playFootstep,
-    speak,
-    stopNarrator,
-    setNarratorEnabled,
-    toggleNarrator,
-    setMasterVolume,
-    setMusicVolume,
-    setSFXVolume,
-  ])
+  }
 }

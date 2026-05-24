@@ -387,7 +387,15 @@ export function VictoryScreen({ onRestart, totalTapes, memoriesCount }: VictoryS
   )
 }
 
-export function IntroScreen({ dialogue, onAdvance }: { dialogue: { speaker: string; text: string } | null; onAdvance: () => void }) {
+export function IntroScreen({
+  dialogue,
+  onAdvance,
+  onTypeVoice,
+}: {
+  dialogue: { speaker: string; text: string } | null
+  onAdvance: () => void
+  onTypeVoice?: (speaker: string, char: string, index: number) => void
+}) {
   const [typedText, setTypedText] = useState('')
   const [isTyping, setIsTyping] = useState(false)
 
@@ -400,7 +408,9 @@ export function IntroScreen({ dialogue, onAdvance }: { dialogue: { speaker: stri
       
       const interval = setInterval(() => {
         if (index < text.length) {
+          const nextChar = text[index]
           setTypedText(text.slice(0, index + 1))
+          onTypeVoice?.(dialogue.speaker, nextChar, index)
           index++
         } else {
           setIsTyping(false)
@@ -410,7 +420,7 @@ export function IntroScreen({ dialogue, onAdvance }: { dialogue: { speaker: stri
       
       return () => clearInterval(interval)
     }
-  }, [dialogue])
+  }, [dialogue, onTypeVoice])
 
   if (!dialogue) return null
 
