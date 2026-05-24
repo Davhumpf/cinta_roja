@@ -31,6 +31,7 @@ interface GameUIProps {
   level: Level
   currentDialogue: Dialogue | null
   onAdvanceDialogue: () => void
+  onTypeVoice?: (speaker: string, char: string, index: number) => void
   onSelectChoice?: (index: number) => void
   totalTapes: number
   memoriesCount: number
@@ -94,6 +95,7 @@ export function GameUI({
   level, 
   currentDialogue, 
   onAdvanceDialogue, 
+  onTypeVoice,
   onSelectChoice,
   totalTapes, 
   memoriesCount,
@@ -145,7 +147,9 @@ export function GameUI({
     
     const interval = window.setInterval(() => {
       if (index < text.length) {
+        const nextChar = text[index]
         setTypedText(text.slice(0, index + 1))
+        onTypeVoice?.(currentDialogue.speaker, nextChar, index)
         index++
       } else {
         setIsTyping(false)
@@ -154,7 +158,7 @@ export function GameUI({
     }, 24)
     
     return () => window.clearInterval(interval)
-  }, [currentDialogue])
+  }, [currentDialogue, onTypeVoice])
 
   const statCards = useMemo<StatusStat[]>(() => [
     {
@@ -190,7 +194,7 @@ export function GameUI({
   return (
     <div className="absolute inset-0 pointer-events-none overflow-hidden font-mono text-slate-100">
       <div className="absolute inset-x-0 top-0 z-20 px-2 pt-2 sm:px-4">
-        <div className="mx-auto flex h-9 max-w-[1280px] items-center justify-between border border-red-500/15 bg-black/35 px-3 shadow-[0_8px_24px_rgba(0,0,0,0.25)] backdrop-blur-[2px] sm:px-4">
+        <div className="mx-auto flex h-9 max-w-[1280px] items-center justify-between overflow-hidden border border-red-500/15 bg-black/35 px-2 shadow-[0_8px_24px_rgba(0,0,0,0.25)] backdrop-blur-[2px] sm:px-4">
           <div className="flex min-w-0 items-center gap-3">
             <div className="flex items-center gap-2 text-red-400">
               <span className="h-2 w-2 animate-pulse rounded-full bg-red-500 shadow-[0_0_12px_rgba(239,68,68,0.9)]" />
@@ -207,7 +211,8 @@ export function GameUI({
             </div>
           </div>
 
-          <div className="flex items-center gap-3">
+          <div className="flex shrink-0 items-center gap-2 sm:gap-3">
+            <CompactVitals stats={statCards} />
             <div className="hidden items-end gap-1 sm:flex">
               {signalBars.map((height, index) => (
                 <span key={index} className="flex h-4 w-1 items-end bg-red-950/60">
@@ -232,7 +237,6 @@ export function GameUI({
         level={level}
         totalTapes={totalTapes}
         memoriesCount={memoriesCount}
-        stats={statCards}
         puzzle={puzzle}
         isDarkLevel={isDarkLevel}
         isStealthLevel={isStealthLevel}
@@ -337,7 +341,6 @@ function HudDock({
   level,
   totalTapes,
   memoriesCount,
-  stats,
   puzzle,
   isDarkLevel,
   isStealthLevel,
@@ -348,7 +351,6 @@ function HudDock({
   level: Level
   totalTapes: number
   memoriesCount: number
-  stats: StatusStat[]
   puzzle?: Puzzle
   isDarkLevel: boolean
   isStealthLevel: boolean
@@ -392,9 +394,6 @@ function HudDock({
         </div>
       </div>
 
-      <div className="absolute right-3 top-14 z-30 hidden w-[min(15rem,calc(100vw-1.5rem))] pointer-events-auto md:block xl:right-4">
-        <StatusPanel stats={stats} />
-      </div>
     </>
   )
 }
@@ -464,46 +463,41 @@ function MissionPanel({ level, totalTapes, memoriesCount }: { level: Level; tota
   )
 }
 
-function StatusPanel({ stats }: { stats: StatusStat[] }) {
+function CompactVitals({ stats }: { stats: StatusStat[] }) {
   return (
-    <TerminalPanel title="Vitals" code="BIO-MON" tone="cyan" Icon={Activity} className="max-sm:p-2.5">
-      <div className="space-y-3">
-        {stats.map((stat) => (
-          <StatusBar key={stat.label} stat={stat} />
-        ))}
-      </div>
-    </TerminalPanel>
+    <div className="flex max-w-[50vw] items-center gap-1.5 sm:max-w-none sm:gap-2">
+      {stats.map((stat) => (
+        <CompactVital key={stat.label} stat={stat} />
+      ))}
+    </div>
   )
 }
 
-function StatusBar({ stat }: { stat: StatusStat }) {
+function CompactVital({ stat }: { stat: StatusStat }) {
   const safeValue = Math.max(0, Math.min(100, stat.value))
   const critical = safeValue <= 28
   const warning = safeValue <= 50
   const Icon = stat.Icon
 
   return (
-    <div className={cx('group', critical && 'animate-pulse')}>
-      <div className="mb-1.5 flex items-center justify-between gap-3">
-        <div className="flex min-w-0 items-center gap-2">
-          <Icon className="h-3.5 w-3.5 shrink-0" style={{ color: stat.color }} />
-          <span className="text-[10px] font-black tracking-[0.22em]" style={{ color: stat.color }}>
-            {stat.label}
-          </span>
-          <span className="truncate text-[9px] uppercase tracking-[0.16em] text-slate-500">{stat.name}</span>
-        </div>
-        <span className={cx('text-[10px] font-bold tabular-nums', critical ? 'text-red-200' : warning ? 'text-amber-200' : 'text-slate-300')}>
+    <div className={cx('w-12 sm:w-16', critical && 'animate-pulse')} title={stat.name}>
+      <div className="mb-1 flex items-center gap-1">
+        <Icon className="h-3 w-3 shrink-0" style={{ color: stat.color }} />
+        <span className="hidden text-[8px] font-black tracking-[0.16em] sm:inline" style={{ color: stat.color }}>
+          {stat.label}
+        </span>
+        <span className={cx('ml-auto text-[8px] font-bold tabular-nums', critical ? 'text-red-200' : warning ? 'text-amber-200' : 'text-slate-300')}>
           {Math.round(safeValue)}%
         </span>
       </div>
 
-      <div className="relative h-2 overflow-hidden border border-white/10 bg-black/60">
+      <div className="relative h-1.5 overflow-hidden border border-white/10 bg-black/40">
         <div
           className="absolute inset-y-0 left-0 transition-[width] duration-700 ease-out"
           style={{
             width: `${safeValue}%`,
             background: `linear-gradient(90deg, ${stat.darkColor}, ${stat.color})`,
-            boxShadow: critical ? `0 0 16px ${stat.color}` : `0 0 9px ${stat.color}66`,
+            boxShadow: critical ? `0 0 12px ${stat.color}` : `0 0 7px ${stat.color}66`,
           }}
         />
         <div
