@@ -195,10 +195,10 @@ export function CintaRojaGame() {
   // ── Layout cálculos (igual que antes) ────────────
   const windowWidth  = typeof window !== 'undefined' ? window.innerWidth  : 1440
   const windowHeight = typeof window !== 'undefined' ? window.innerHeight : 760
-  const sideRailWidth   = windowWidth >= 1280 ? 360 : 8
-  const gameTopInset    = 68
-  const gameBottomInset = 16
-  const viewportWidth   = Math.max(320, windowWidth  - sideRailWidth * 2 - 24)
+  const gameSideInset   = windowWidth >= 640 ? 12 : 4
+  const gameTopInset    = windowWidth >= 640 ? 54 : 46
+  const gameBottomInset = 8
+  const viewportWidth   = Math.max(320, windowWidth  - gameSideInset * 2)
   const viewportHeight  = Math.max(320, windowHeight - gameTopInset - gameBottomInset)
 
   const translateX = currentLevel?.width > viewportWidth
@@ -231,7 +231,7 @@ export function CintaRojaGame() {
           <div
             className="absolute flex items-center justify-center overflow-hidden"
             style={{
-              left: sideRailWidth, right: sideRailWidth,
+              left: gameSideInset, right: gameSideInset,
               top: gameTopInset,   bottom: gameBottomInset,
             }}
           >

@@ -28,7 +28,7 @@ export function AudioControls({
     <div className="fixed bottom-20 right-4 z-40 sm:bottom-6 font-mono">
       {/* Expandable panel */}
       {open && (
-        <div className="mb-2 w-52 border border-red-500/20 bg-black/85 backdrop-blur-md p-4 shadow-[0_0_20px_rgba(127,29,29,0.3)]">
+        <div className="mb-2 w-52 border border-red-500/20 bg-black/55 backdrop-blur-[2px] p-4 shadow-[0_0_18px_rgba(127,29,29,0.22)]">
           {/* Corner brackets */}
           <div className="absolute top-0 left-0 w-3 h-3 border-t border-l border-red-500/50" />
           <div className="absolute bottom-0 right-0 w-3 h-3 border-b border-r border-red-500/50" />
@@ -78,7 +78,7 @@ export function AudioControls({
       <div className="flex justify-end gap-2">
         <button
           onClick={() => setOpen(v => !v)}
-          className="flex h-8 w-8 items-center justify-center border border-red-500/20 bg-black/80 backdrop-blur-md text-slate-400 hover:text-red-400 hover:border-red-500/50 transition-all"
+          className="flex h-8 w-8 items-center justify-center border border-red-500/20 bg-black/50 backdrop-blur-[2px] text-slate-400 hover:text-red-400 hover:border-red-500/50 transition-all"
           aria-label="Audio settings"
         >
           <span className="text-[10px] font-bold tracking-widest">
@@ -88,7 +88,7 @@ export function AudioControls({
 
         <button
           onClick={onToggleMute}
-          className={`flex h-8 w-8 items-center justify-center border bg-black/80 backdrop-blur-md transition-all ${
+          className={`flex h-8 w-8 items-center justify-center border bg-black/50 backdrop-blur-[2px] transition-all ${
             isMuted
               ? 'border-slate-700/40 text-slate-600'
               : 'border-red-500/20 text-slate-400 hover:text-red-400 hover:border-red-500/50'

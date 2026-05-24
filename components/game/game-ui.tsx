@@ -189,8 +189,8 @@ export function GameUI({
 
   return (
     <div className="absolute inset-0 pointer-events-none overflow-hidden font-mono text-slate-100">
-      <div className="absolute inset-x-0 top-0 z-20 px-3 pt-3 sm:px-5">
-        <div className="mx-auto flex h-11 max-w-[1280px] items-center justify-between border border-red-500/15 bg-black/70 px-3 shadow-[0_12px_36px_rgba(0,0,0,0.42)] backdrop-blur-md sm:px-4">
+      <div className="absolute inset-x-0 top-0 z-20 px-2 pt-2 sm:px-4">
+        <div className="mx-auto flex h-9 max-w-[1280px] items-center justify-between border border-red-500/15 bg-black/35 px-3 shadow-[0_8px_24px_rgba(0,0,0,0.25)] backdrop-blur-[2px] sm:px-4">
           <div className="flex min-w-0 items-center gap-3">
             <div className="flex items-center gap-2 text-red-400">
               <span className="h-2 w-2 animate-pulse rounded-full bg-red-500 shadow-[0_0_12px_rgba(239,68,68,0.9)]" />
@@ -311,8 +311,8 @@ function TerminalPanel({
   return (
     <section
       className={cx(
-        'relative overflow-hidden border bg-black/75 p-3 backdrop-blur-md',
-        'before:absolute before:inset-0 before:pointer-events-none before:bg-[linear-gradient(rgba(255,255,255,0.035)_1px,transparent_1px)] before:bg-[length:100%_4px] before:opacity-25',
+        'relative overflow-hidden border bg-black/55 p-3 shadow-[0_10px_28px_rgba(0,0,0,0.24)] backdrop-blur-[2px]',
+        'before:absolute before:inset-0 before:pointer-events-none before:bg-[linear-gradient(rgba(255,255,255,0.035)_1px,transparent_1px)] before:bg-[length:100%_4px] before:opacity-15',
         toneClass.border,
         toneClass.glow,
         className,
@@ -356,9 +356,9 @@ function HudDock({
 }) {
   return (
     <>
-      <div className="absolute left-3 top-[4.85rem] z-30 w-[min(21rem,calc(100vw-1.5rem))] pointer-events-auto sm:left-5 xl:left-6">
-        <div className="flex flex-col gap-2 transition-all duration-300">
-          <div className="transition-all duration-300">
+      <div className="absolute left-2 top-14 z-30 pointer-events-auto sm:left-4 sm:top-14">
+        <div className="flex items-start gap-2">
+          <div className="flex flex-col gap-2">
             <HudMenuButton
               label="Mission"
               tone="red"
@@ -366,14 +366,6 @@ function HudDock({
               isOpen={openMenus.mission}
               onClick={() => onToggleMenu('mission')}
             />
-            <div className={cx('grid transition-[grid-template-rows,opacity] duration-300 ease-out', openMenus.mission ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0')}>
-              <div className="min-h-0 overflow-hidden pt-2">
-                <MissionPanel level={level} totalTapes={totalTapes} memoriesCount={memoriesCount} />
-              </div>
-            </div>
-          </div>
-
-          <div className="transition-all duration-300">
             <HudMenuButton
               label="Objectives"
               tone="cyan"
@@ -381,8 +373,17 @@ function HudDock({
               isOpen={openMenus.objectives}
               onClick={() => onToggleMenu('objectives')}
             />
-            <div className={cx('grid transition-[grid-template-rows,opacity] duration-300 ease-out', openMenus.objectives ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0')}>
-              <div className="min-h-0 space-y-3 overflow-hidden pt-2">
+          </div>
+
+          <div className="w-[min(19rem,calc(100vw-4.75rem))] space-y-2">
+            <div className={cx('grid transition-[grid-template-rows,opacity,transform] duration-300 ease-out', openMenus.mission ? 'grid-rows-[1fr] translate-x-0 opacity-100' : 'pointer-events-none grid-rows-[0fr] -translate-x-2 opacity-0')}>
+              <div className="min-h-0 max-h-[min(42vh,18rem)] overflow-y-auto">
+                <MissionPanel level={level} totalTapes={totalTapes} memoriesCount={memoriesCount} />
+              </div>
+            </div>
+
+            <div className={cx('grid transition-[grid-template-rows,opacity,transform] duration-300 ease-out', openMenus.objectives ? 'grid-rows-[1fr] translate-x-0 opacity-100' : 'pointer-events-none grid-rows-[0fr] -translate-x-2 opacity-0')}>
+              <div className="min-h-0 max-h-[min(42vh,20rem)] space-y-2 overflow-y-auto">
                 <ObjectivePanel puzzle={puzzle} isDarkLevel={isDarkLevel} />
                 {isStealthLevel && <DetectionPanel detectionCount={detectionCount} />}
               </div>
@@ -391,7 +392,7 @@ function HudDock({
         </div>
       </div>
 
-      <div className="absolute right-3 top-[4.85rem] z-30 w-[min(21rem,calc(100vw-1.5rem))] pointer-events-auto sm:right-5 xl:right-6">
+      <div className="absolute right-3 top-14 z-30 hidden w-[min(15rem,calc(100vw-1.5rem))] pointer-events-auto md:block xl:right-4">
         <StatusPanel stats={stats} />
       </div>
     </>
@@ -417,19 +418,18 @@ function HudMenuButton({
     <button
       type="button"
       aria-expanded={isOpen}
+      aria-label={label}
+      title={label}
       onClick={onClick}
       className={cx(
-        'group flex h-9 w-full items-center gap-2 border bg-black/80 px-3 backdrop-blur-md transition-all active:scale-95',
-        'hover:bg-black/95',
+        'group relative flex h-9 w-9 items-center justify-center border bg-black/45 backdrop-blur-[2px] transition-all active:scale-95',
+        'hover:bg-black/65',
         toneClass.border,
         isOpen && toneClass.glow,
       )}
     >
       <Icon className={cx('h-3.5 w-3.5', toneClass.accent)} />
-      <span className={cx('text-[9px] font-black uppercase tracking-[0.22em]', isOpen ? toneClass.accent : 'text-slate-400')}>
-        {label}
-      </span>
-      <span className={cx('ml-auto text-[10px] transition-transform', toneClass.accent, isOpen && 'rotate-180')}>v</span>
+      <span className={cx('absolute right-1 top-1 h-1.5 w-1.5 transition-opacity', isOpen ? 'opacity-100' : 'opacity-0', tone === 'cyan' ? 'bg-cyan-300' : 'bg-red-400')} />
     </button>
   )
 }
@@ -615,7 +615,7 @@ function DialoguePanel({
 }) {
   return (
     <div
-      className="absolute bottom-28 left-1/2 z-40 w-[min(44rem,calc(100vw-1.5rem))] -translate-x-1/2 pointer-events-auto sm:bottom-24"
+      className="absolute bottom-20 left-1/2 z-40 w-[min(44rem,calc(100vw-1.5rem))] -translate-x-1/2 pointer-events-auto sm:bottom-16"
       onClick={() => {
         if (isTyping) {
           onSkipTyping()
@@ -688,7 +688,7 @@ function InteractionOverlay({
   const visibleValves = activeValve ? valves.filter((valve) => valve.id === activeValve) : valves
 
   return (
-    <div className={cx('absolute inset-0 z-50 flex items-center justify-center p-4 pointer-events-auto backdrop-blur-sm', activeValve ? 'bg-black/45' : 'bg-black/80')}>
+    <div className="absolute inset-0 z-50 flex items-center justify-center bg-black/35 p-4 pointer-events-auto backdrop-blur-[1px]">
       <TerminalPanel title={showInventory ? 'Inventory manifest' : activeValve ? 'Valve control' : 'Keypad entry'} code="INPUT" tone={activeValve ? 'cyan' : showInventory ? 'amber' : 'red'} Icon={Package} className="w-[min(34rem,calc(100vw-2rem))] p-5 sm:p-6">
         {showKeypad && (
           <div className="space-y-5">
