@@ -80,6 +80,7 @@ export function useGameEngine() {
   const gameLoopRef = useRef<number | null>(null)
   const lastUpdateRef = useRef<number>(0)
   const stuckTimerRef = useRef<number>(0)
+  const tapeWarningCooldownRef = useRef<number>(0)
 
   // Deep clone levels for new game
   const cloneLevels = useCallback(() => {
@@ -130,6 +131,7 @@ export function useGameEngine() {
     setDetectionCount(0)
     setValveValues({})
     setSequenceProgress([])
+    tapeWarningCooldownRef.current = 0
 
     const introDialogues = newLevels[safeLevel].introDialogueIds
     if (introDialogues.length > 0) {
@@ -178,6 +180,7 @@ export function useGameEngine() {
     })
     setDetectionCount(0)
     setSequenceProgress([])
+    tapeWarningCooldownRef.current = 0
     setScreen('playing')
   }, [])
 
@@ -614,6 +617,23 @@ export function useGameEngine() {
           setDetectionCount(0)
           setSequenceProgress([])
           return { ...newState, player: newPlayer, levels: newLevels, currentLevel: nextLevel }
+        }
+      } else if (exitUnlocked && tapesCollected < level.requiredTapes && level.requiredTapes > 0 && checkCollision(
+        newPlayer.position, newPlayer.width, newPlayer.height,
+        level.exitPosition, level.exitWidth, level.exitHeight
+      )) {
+        // Player reached the exit but hasn't collected the required VHS tape(s)
+        if (tapeWarningCooldownRef.current <= 0) {
+          tapeWarningCooldownRef.current = 120 // ~2 seconds at 60fps
+          dialoguesToShow.push('tape_required')
+          shouldTriggerDialogue = true
+        } else {
+          tapeWarningCooldownRef.current--
+        }
+      } else {
+        // Decrement cooldown when player is away from exit
+        if (tapeWarningCooldownRef.current > 0) {
+          tapeWarningCooldownRef.current--
         }
       }
 
