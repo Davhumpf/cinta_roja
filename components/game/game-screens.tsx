@@ -109,7 +109,7 @@ export function TitleScreen({ onStart, levels, maxUnlockedLevel, onSelectLevel }
               <div className="absolute inset-0 border border-red-600/30 group-hover:border-red-600 transition-colors" />
               <div className="absolute inset-0 bg-red-600/0 group-hover:bg-red-600/5 transition-colors" />
               <div className="relative text-[10px] font-bold tracking-[0.4em] uppercase text-gray-500 group-hover:text-red-400 transition-colors">
-                selecc_nivel
+                SELECCIÓN_DE_NIVEL
               </div>
             </button>
           </div>
@@ -125,7 +125,7 @@ export function TitleScreen({ onStart, levels, maxUnlockedLevel, onSelectLevel }
             <div className="absolute bottom-0 right-0 w-8 h-8 border-b-2 border-r-2 border-red-600" />
             
             <div className="flex items-center justify-between mb-10 border-b border-red-900/30 pb-4">
-              <h3 className="text-red-500 text-xl tracking-[0.4em] font-bold uppercase">archivo_de_niveles</h3>
+              <h3 className="text-red-500 text-xl tracking-[0.4em] font-bold uppercase">ARCHIVO_DE_NIVELES</h3>
               <button
                 onClick={() => setShowLevelSelect(false)}
                 className="text-gray-500 hover:text-white transition-colors text-2xl"
@@ -214,19 +214,19 @@ export function PauseScreen({ onResume, onQuit, onOpenLevels, currentLevel, tota
               onClick={onOpenLevels}
               className="w-full bg-gray-900 border border-gray-700 text-gray-300 py-4 font-bold tracking-[0.3em] hover:bg-gray-800 hover:text-white transition-all uppercase text-sm"
             >
-              selecc_sector
+              SELECCIÓN_DE_SECTOR
             </button>
             <button
               onClick={onQuit}
               className="w-full bg-transparent border border-red-900/30 text-red-900/60 py-3 font-bold tracking-[0.2em] hover:text-red-500 hover:border-red-500 transition-all uppercase text-[10px]"
             >
-              abortar_sesion
+              ABORTAR_SESIÓN
             </button>
           </div>
         </div>
         
         <p className="text-center text-[9px] text-gray-700 tracking-[0.3em] mt-8 uppercase">
-          presiona ESC para continuar_
+          Presiona ESC para continuar
         </p>
       </div>
     </div>
@@ -278,12 +278,12 @@ export function GameOverScreen({ onRetry, currentLevel }: GameOverScreenProps) {
         >
           <div className="absolute inset-0 bg-red-700 box-glow-red group-hover:bg-red-600 transition-colors" />
           <div className="relative text-white font-bold tracking-[0.5em] uppercase text-sm">
-            reiniciar_ciclo
+            REINICIAR_CICLO
           </div>
         </button>
 
         <p className="text-gray-700 text-[10px] tracking-[0.3em] mt-12 uppercase animate-pulse">
-          presiona espacio para reintentar_
+          Presiona espacio para reintentar
         </p>
       </div>
       
@@ -343,18 +343,18 @@ export function VictoryScreen({ onRestart, totalTapes, memoriesCount }: VictoryS
         {showText >= 4 && (
           <div className="animate-fade-in space-y-12">
             <div className="glass-panel p-10 box-glow-cyan border-cyan-900/30 bg-black/40">
-              <div className="text-cyan-500 text-[10px] tracking-[0.5em] mb-8 font-bold uppercase">informe_final_sesion</div>
+              <div className="text-cyan-500 text-[10px] tracking-[0.5em] mb-8 font-bold uppercase">INFORME_FINAL_SESIÓN</div>
               <div className="grid grid-cols-2 gap-y-6 gap-x-12">
                 <div className="text-left">
-                  <div className="text-[9px] text-gray-500 uppercase tracking-widest mb-1">recoleccion_vhs</div>
+                  <div className="text-[9px] text-gray-500 uppercase tracking-widest mb-1">RECOLECCIÓN_VHS</div>
                   <div className="text-2xl text-red-500 font-bold">{totalTapes}/10</div>
                 </div>
                 <div className="text-left">
-                  <div className="text-[9px] text-gray-500 uppercase tracking-widest mb-1">fragmentos_memoria</div>
+                  <div className="text-[9px] text-gray-500 uppercase tracking-widest mb-1">FRAGMENTOS_MEMORIA</div>
                   <div className="text-2xl text-cyan-400 font-bold">{memoriesCount}</div>
                 </div>
                 <div className="text-left">
-                  <div className="text-[9px] text-gray-500 uppercase tracking-widest mb-1">estado_ciclo</div>
+                  <div className="text-[9px] text-gray-500 uppercase tracking-widest mb-1">ESTADO_CICLO</div>
                   <div className="text-sm text-green-500 font-bold uppercase tracking-widest">completo_exitoso</div>
                 </div>
                 <div className="text-left">
@@ -371,7 +371,7 @@ export function VictoryScreen({ onRestart, totalTapes, memoriesCount }: VictoryS
               >
                 <div className="absolute inset-0 border border-cyan-500/30 group-hover:border-cyan-500 transition-colors" />
                 <div className="relative text-cyan-400 text-sm font-bold tracking-[0.4em] uppercase group-hover:text-cyan-200">
-                  liberar_sistema
+                  LIBERAR_SISTEMA
                 </div>
               </button>
 
@@ -433,7 +433,7 @@ export function IntroScreen({ dialogue, onAdvance }: { dialogue: { speaker: stri
         </div>
         {!isTyping && (
           <div className="mt-16 text-red-600/40 text-[10px] tracking-[0.4em] uppercase animate-fade-in">
-            [ presiona_enter_para_iniciar_transmision ]
+            [ presiona_enter_para_iniciar_transmisión ]
           </div>
         )}
       </div>
