@@ -1288,6 +1288,22 @@ export function GameRenderer({ level, player, glitchIntensity, showVHSEffect, va
           ctx.arc(x + obstacle.width - 10, y + obstacle.height / 2, 4, 0, Math.PI * 2)
           ctx.fill()
         }
+
+        const doorLabels: Record<string, string> = {
+          door_fire: '^',
+          door_water: '~',
+          door_eye: '()',
+          door_dark: '#',
+          door_light: '*',
+        }
+        const doorLabel = doorLabels[obstacle.id]
+        if (doorLabel) {
+          ctx.fillStyle = '#cbd5e1'
+          ctx.font = 'bold 12px monospace'
+          ctx.textAlign = 'center'
+          ctx.fillText(doorLabel, x + obstacle.width / 2, y + obstacle.height + 14)
+          ctx.textAlign = 'start'
+        }
       }
     } else if (obstacle.type === 'hiding_spot') {
       drawInteractiveGlow(ctx, x, y, obstacle.width, obstacle.height, frame, 'green', 0.42)

@@ -311,9 +311,10 @@ export function useGameEngine() {
       const playerPos = prev.player.position
       const playerCenter = { x: playerPos.x + prev.player.width / 2, y: playerPos.y + prev.player.height / 2 }
       const isPlayerSprinting = prev.player.isSprinting
+      const isPlayerHidden = prev.player.isHiding
 
       const updatedEnemies = level.enemies.map(enemy => {
-        if (!enemy.isActive || prev.player.isHiding) return enemy
+        if (!enemy.isActive) return enemy
 
         const newEnemy = { ...enemy }
         const enemyCenter = { x: enemy.position.x + enemy.width / 2, y: enemy.position.y + enemy.height / 2 }
@@ -322,17 +323,36 @@ export function useGameEngine() {
         const dist = Math.sqrt(dx * dx + dy * dy)
 
         // Hearing detection for sprinting
-        const canHearPlayer = enemy.canHear && isPlayerSprinting && dist < enemy.hearingRadius
+        const canHearPlayer = !isPlayerHidden && enemy.canHear && isPlayerSprinting && dist < enemy.hearingRadius
 
         // Visual detection
-        const canSeePlayer = dist < enemy.detectionRadius
+        const canSeePlayer = !isPlayerHidden && dist < enemy.detectionRadius
+
+        if (isPlayerHidden && newEnemy.behaviorState === 'chase') {
+          newEnemy.behaviorState = enemy.patrolPath?.length ? 'patrol' : 'idle'
+          newEnemy.lastKnownPlayerPos = undefined
+        }
 
         if (enemy.type === 'operator') {
           // Operator always moves towards player
-          if (dist > 30) {
+          if (!isPlayerHidden && dist > 30) {
             newEnemy.position = {
               x: enemy.position.x + (dx / dist) * enemy.speed,
               y: enemy.position.y + (dy / dist) * enemy.speed,
+            }
+          } else if (enemy.patrolPath && enemy.patrolPath.length > 0) {
+            const targetPoint = enemy.patrolPath[enemy.patrolIndex || 0]
+            const patrolDx = targetPoint.x - enemyCenter.x
+            const patrolDy = targetPoint.y - enemyCenter.y
+            const patrolDist = Math.sqrt(patrolDx * patrolDx + patrolDy * patrolDy)
+
+            if (patrolDist > 10) {
+              newEnemy.position = {
+                x: enemy.position.x + (patrolDx / patrolDist) * enemy.speed,
+                y: enemy.position.y + (patrolDy / patrolDist) * enemy.speed,
+              }
+            } else {
+              newEnemy.patrolIndex = ((enemy.patrolIndex || 0) + 1) % enemy.patrolPath.length
             }
           }
         } else if (enemy.type === 'stalker') {
@@ -575,8 +595,17 @@ export function useGameEngine() {
         return collectible
       })
 
+      const logicClueCount = updatedCollectibles.filter(
+        collectible => collectible.id.startsWith('clue_logic_') && collectible.collected
+      ).length
+      const updatedPuzzles = level.puzzles.map(puzzle =>
+        puzzle.id === 'logic_puzzle'
+          ? { ...puzzle, currentSequenceIndex: logicClueCount }
+          : puzzle
+      )
+
       const newLevels = [...prev.levels]
-      newLevels[prev.currentLevel] = { ...level, collectibles: updatedCollectibles }
+      newLevels[prev.currentLevel] = { ...level, collectibles: updatedCollectibles, puzzles: updatedPuzzles }
       newState.levels = newLevels
 
       // Check exit
@@ -971,6 +1000,159 @@ export function useGameEngine() {
         if (dist < 60) {
           activateSwitch(switchObj)
           return prev
+        }
+      }
+
+      const logicPuzzle = level.puzzles.find(p => p.id === 'logic_puzzle')
+      if (logicPuzzle && !logicPuzzle.isSolved) {
+        for (const door of level.obstacles.filter(o => o.type === 'door' && o.id.startsWith('door_'))) {
+          const dist = Math.sqrt(
+            Math.pow(playerCenter.x - (door.position.x + door.width / 2), 2) +
+            Math.pow(playerCenter.y - (door.position.y + door.height / 2), 2)
+          )
+
+          if (dist < 120) {
+            const hasReadAllClues = ['clue_logic_1', 'clue_logic_2', 'clue_logic_3']
+              .every(clueId => level.collectibles.some(c => c.id === clueId && c.collected))
+
+            if (!hasReadAllClues) {
+              setDialogueQueue(['logic_clues_required'])
+              setCurrentDialogueIndex(0)
+              setScreen('dialogue')
+              return prev
+            }
+
+            if (door.id !== 'door_eye') {
+              const trapEnemies: Enemy[] = [
+                {
+                  id: `logic_trap_${door.id}_a_${level.enemies.length}`,
+                  type: 'shadow',
+                  position: { x: Math.max(60, door.position.x - 80), y: Math.min(level.height - 90, door.position.y + 140) },
+                  width: 28,
+                  height: 36,
+                  speed: 1.55,
+                  direction: 'down',
+                  isActive: true,
+                  detectionRadius: 95,
+                  patrolPath: [
+                    { x: Math.max(60, door.position.x - 110), y: Math.min(level.height - 90, door.position.y + 150) },
+                    { x: Math.min(level.width - 90, door.position.x + 110), y: Math.min(level.height - 90, door.position.y + 150) },
+                  ],
+                  patrolIndex: 0,
+                  behaviorState: 'chase',
+                  lastKnownPlayerPos: { ...playerCenter },
+                  canHear: true,
+                  hearingRadius: 90,
+                  stunned: false,
+                  stunnedTimer: 0,
+                },
+                {
+                  id: `logic_trap_${door.id}_b_${level.enemies.length}`,
+                  type: 'shadow',
+                  position: { x: Math.min(level.width - 90, door.position.x + door.width + 50), y: Math.min(level.height - 90, door.position.y + 140) },
+                  width: 26,
+                  height: 34,
+                  speed: 1.35,
+                  direction: 'down',
+                  isActive: true,
+                  detectionRadius: 85,
+                  patrolPath: [
+                    { x: Math.max(60, door.position.x - 70), y: Math.min(level.height - 90, door.position.y + 190) },
+                    { x: Math.min(level.width - 90, door.position.x + 150), y: Math.min(level.height - 90, door.position.y + 190) },
+                  ],
+                  patrolIndex: 0,
+                  behaviorState: 'chase',
+                  lastKnownPlayerPos: { ...playerCenter },
+                  canHear: true,
+                  hearingRadius: 80,
+                  stunned: false,
+                  stunnedTimer: 0,
+                },
+              ]
+              const newLevels = [...prev.levels]
+              newLevels[prev.currentLevel] = {
+                ...level,
+                enemies: [...level.enemies, ...trapEnemies],
+              }
+
+              setDialogueQueue(['wrong_door'])
+              setCurrentDialogueIndex(0)
+              setScreen('dialogue')
+              return {
+                ...prev,
+                levels: newLevels,
+                player: {
+                  ...prev.player,
+                  sanity: Math.max(0, prev.player.sanity - 10),
+                },
+                glitchIntensity: Math.min(100, prev.glitchIntensity + 18),
+              }
+            }
+
+            const newPuzzles = level.puzzles.map(p =>
+              p.id === logicPuzzle.id ? { ...p, isSolved: true } : p
+            )
+            const newObstacles = level.obstacles.map(o =>
+              o.id === 'door_eye' || o.id === 'platform'
+                ? { ...o, isOpen: true, solid: false }
+                : o
+            )
+            const newCollectibles = level.collectibles.map(c =>
+              c.revealedBy === logicPuzzle.id ? { ...c, hidden: false } : c
+            )
+            const guardianEnemies: Enemy[] = [
+              {
+                id: `logic_guardian_${level.enemies.length}`,
+                type: 'shadow',
+                position: { x: 500, y: 250 },
+                width: 28,
+                height: 36,
+                speed: 1.45,
+                direction: 'down',
+                isActive: true,
+                detectionRadius: 95,
+                patrolPath: [{ x: 360, y: 250 }, { x: 640, y: 250 }],
+                patrolIndex: 0,
+                behaviorState: 'patrol',
+                canHear: true,
+                hearingRadius: 90,
+                stunned: false,
+                stunnedTimer: 0,
+              },
+              {
+                id: `logic_guardian_echo_${level.enemies.length}`,
+                type: 'echo',
+                position: { x: 470, y: 360 },
+                width: 26,
+                height: 34,
+                speed: 1.2,
+                direction: 'left',
+                isActive: true,
+                detectionRadius: 85,
+                patrolPath: [{ x: 320, y: 360 }, { x: 660, y: 360 }],
+                patrolIndex: 0,
+                behaviorState: 'patrol',
+                canHear: true,
+                hearingRadius: 85,
+                stunned: false,
+                stunnedTimer: 0,
+              },
+            ]
+            const newLevels = [...prev.levels]
+            newLevels[prev.currentLevel] = {
+              ...level,
+              puzzles: newPuzzles,
+              obstacles: newObstacles,
+              collectibles: newCollectibles,
+              enemies: [...level.enemies, ...guardianEnemies],
+            }
+
+            setDialogueQueue(['logic_solved'])
+            setCurrentDialogueIndex(0)
+            setScreen('dialogue')
+
+            return { ...prev, levels: newLevels }
+          }
         }
       }
 
