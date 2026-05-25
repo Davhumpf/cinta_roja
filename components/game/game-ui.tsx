@@ -540,7 +540,11 @@ function ObjectivePanel({ puzzle, isDarkLevel }: { puzzle?: Puzzle; isDarkLevel:
             <span className="h-1.5 w-1.5 bg-cyan-300 shadow-[0_0_10px_rgba(103,232,249,0.8)]" />
             <h3 className="truncate text-sm font-black uppercase tracking-[0.12em] text-slate-100">{puzzle.name}</h3>
           </div>
-          <p className="mt-2 text-[10px] leading-5 text-slate-400">{puzzle.hint}</p>
+          <p className="mt-2 text-[10px] leading-5 text-slate-400">
+            {puzzle.type === 'logic'
+              ? 'Lee los 3 carteles y compara los simbolos antes de elegir una puerta.'
+              : puzzle.hint}
+          </p>
         </div>
 
         {progress.total > 0 && (
@@ -839,7 +843,7 @@ function getPuzzleProgress(puzzle: Puzzle) {
 
   if (puzzle.type === 'logic') {
     return {
-      current: 0,
+      current: puzzle.currentSequenceIndex ?? 0,
       total: puzzle.logicClues?.length ?? 0,
     }
   }
