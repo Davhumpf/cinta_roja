@@ -342,22 +342,55 @@ function buildDroneLayer(ctx: AudioContext, dest: AudioNode): MusicLayer {
 
 function buildStaticLayer(ctx: AudioContext, dest: AudioNode): MusicLayer {
   const masterGain = createGain(ctx, 0)
-  const bufferSize = ctx.sampleRate * 2
+  const bufferSize = ctx.sampleRate * 4
   const buffer = ctx.createBuffer(1, bufferSize, ctx.sampleRate)
   const data = buffer.getChannelData(0)
-  for (let i = 0; i < bufferSize; i++) data[i] = (Math.random() * 2 - 1) * 0.15
+  let last = 0
+  for (let i = 0; i < bufferSize; i++) {
+    const white = (Math.random() * 2 - 1) * 0.05
+    last = last * 0.985 + white * 0.015
+    data[i] = last + (Math.random() * 2 - 1) * 0.012
+  }
 
   const source = ctx.createBufferSource()
   source.buffer = buffer
   source.loop = true
 
-  const filter = createFilter(ctx, 'bandpass', 800, 0.5)
-  source.connect(filter)
-  filter.connect(masterGain)
+  const rainLow = createFilter(ctx, 'lowpass', 1250, 0.7)
+  const rainHigh = createFilter(ctx, 'highpass', 260, 0.6)
+  const rainGain = createGain(ctx, 0.72)
+  source.connect(rainLow)
+  rainLow.connect(rainHigh)
+  rainHigh.connect(rainGain)
+  rainGain.connect(masterGain)
   masterGain.connect(dest)
   source.start()
 
-  return { nodes: [source, filter, masterGain], gainNode: masterGain }
+  const dropInterval = window.setInterval(() => {
+    if (masterGain.gain.value < 0.01) return
+
+    const now = ctx.currentTime
+    const freq = 760 + Math.random() * 820
+    const drop = createOsc(ctx, freq, Math.random() > 0.5 ? 'sine' : 'triangle')
+    const dropFilter = createFilter(ctx, 'bandpass', freq, 4)
+    const dropGain = createGain(ctx, 0)
+
+    drop.connect(dropFilter)
+    dropFilter.connect(dropGain)
+    dropGain.connect(masterGain)
+    drop.start(now)
+    dropGain.gain.setValueAtTime(0, now)
+    dropGain.gain.linearRampToValueAtTime(0.018 + Math.random() * 0.012, now + 0.008)
+    dropGain.gain.exponentialRampToValueAtTime(0.001, now + 0.14 + Math.random() * 0.1)
+    drop.stop(now + 0.26)
+  }, 220)
+
+  return {
+    nodes: [source, rainLow, rainHigh, rainGain, masterGain],
+    gainNode: masterGain,
+    // @ts-ignore - store interval id for cleanup
+    _intervalId: dropInterval,
+  }
 }
 
 function buildPulseLayer(ctx: AudioContext, dest: AudioNode): MusicLayer {
@@ -847,17 +880,17 @@ export function useAudio() {
     }
 
     // Procedural layer targets per mode
-    // [drone, static, pulse, melody, heartbeat]
+    // [drone, rain, pulse, melody, heartbeat]
     const targets: Record<MusicMode, [number, number, number, number, number]> = {
       silence:   [0,    0,    0,    0,    0   ],
-      title:     [0.6,  0.2,  0,    0.3,  0   ],
-      ambient:   [0.5,  0.1,  0.05, 0.15, 0   ],
-      tension:   [0.7,  0.3,  0.35, 0.2,  0   ],
-      chase:     [0.85, 0.45, 0.8,  0,    0   ],
-      horror:    [0.9,  0.6,  0.5,  0.1,  0   ],
-      dark:      [1.0,  0.35, 0.15, 0,    0   ],
-      victory:   [0.1,  0,    0,    0.6,  0   ],
-      gameover:  [0.8,  0.7,  0.2,  0,    0.4 ],
+      title:     [0.55, 0.32, 0,    0.28, 0   ],
+      ambient:   [0.48, 0.38, 0.03, 0.16, 0   ],
+      tension:   [0.68, 0.42, 0.24, 0.16, 0   ],
+      chase:     [0.84, 0.28, 0.72, 0,    0   ],
+      horror:    [0.92, 0.34, 0.42, 0.08, 0   ],
+      dark:      [0.95, 0.44, 0.1,  0,    0   ],
+      victory:   [0.08, 0.18, 0,    0.52, 0   ],
+      gameover:  [0.78, 0.3,  0.18, 0,    0.38],
     }
 
     const t = targets[mode]
@@ -908,16 +941,27 @@ export function useAudio() {
 
     const utt = new SpeechSynthesisUtterance(text)
     utt.lang = options?.lang ?? 'es-ES'
-    utt.rate = options?.rate ?? 0.82       // slightly slower = more ominous
-    utt.pitch = options?.pitch ?? 0.55     // lower pitch = horror narrator feel
-    utt.volume = options?.volume ?? 0.9
+    utt.rate = options?.rate ?? 0.74
+    utt.pitch = options?.pitch ?? 0.5
+    utt.volume = options?.volume ?? 0.86
 
-    // Try to find a matching voice
     const voices = window.speechSynthesis.getVoices()
+    const suspenseVoiceNames = [
+      'pablo',
+      'raul',
+      'jorge',
+      'diego',
+      'miguel',
+      'google español',
+      'google spanish',
+      'microsoft',
+    ]
+    const spanishVoices = voices.filter(v => v.lang.toLowerCase().startsWith('es'))
     const preferred = options?.voiceName
-      ? voices.find(v => v.name.includes(options.voiceName!))
-      : voices.find(v => v.lang.startsWith('es') && v.localService)
-        ?? voices.find(v => v.lang.startsWith('es'))
+      ? voices.find(v => v.name.toLowerCase().includes(options.voiceName!.toLowerCase()))
+      : spanishVoices.find(v => suspenseVoiceNames.some(name => v.name.toLowerCase().includes(name)))
+        ?? spanishVoices.find(v => v.localService)
+        ?? spanishVoices[0]
         ?? voices[0]
 
     if (preferred) utt.voice = preferred
@@ -958,8 +1002,16 @@ export function useAudio() {
       stopExternal()
       stopNarrator()
       // @ts-ignore
+      if (staticRef.current?._intervalId) clearInterval(staticRef.current._intervalId)
+      // @ts-ignore
       if (heartbeatRef.current?._intervalId) clearInterval(heartbeatRef.current._intervalId)
-      ctxRef.current?.close()
+      const ctx = ctxRef.current
+      ctxRef.current = null
+      if (ctx && ctx.state !== 'closed') {
+        void ctx.close().catch(() => {
+          // AudioContext may already be closing during React Fast Refresh cleanup.
+        })
+      }
     }
   }, [stopExternal, stopNarrator])
 

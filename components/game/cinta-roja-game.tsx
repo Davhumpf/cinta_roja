@@ -54,6 +54,7 @@ export function CintaRojaGame() {
 
   const audio = useAudio()                             // ← nuevo
   const [isMounted, setIsMounted] = useState(false)
+  const [isNarratorEnabled, setIsNarratorEnabled] = useState(false)
 
   // ── Mount ────────────────────────────────────────
   useEffect(() => { setIsMounted(true) }, [])
@@ -77,8 +78,19 @@ export function CintaRojaGame() {
   }, [handleFirstInteraction])
 
   const handleTypeVoice = useCallback((speaker: string, char: string, index: number) => {
+    if (isNarratorEnabled) return
     audio.playVoiceBlip(speaker, char, index)
-  }, [audio.playVoiceBlip])
+  }, [audio.playVoiceBlip, isNarratorEnabled])
+
+  const toggleNarrator = useCallback(() => {
+    audio.init()
+    setIsNarratorEnabled(current => {
+      if (current) {
+        audio.stopNarrator()
+      }
+      return !current
+    })
+  }, [audio.init, audio.stopNarrator])
 
   // ── Música según pantalla ────────────────────────
   useEffect(() => {
@@ -124,6 +136,26 @@ export function CintaRojaGame() {
   useEffect(() => {
     if (screen !== 'dialogue' && screen !== 'intro') audio.stopNarrator()
   }, [screen, audio.stopNarrator])
+
+  const activeDialogue = getCurrentDialogue()
+  const isAudioReady = audio.isReady
+  const speakNarration = audio.speak
+  const stopNarration = audio.stopNarrator
+
+  useEffect(() => {
+    if (!isNarratorEnabled || !isAudioReady) return
+    if (screen !== 'dialogue' && screen !== 'intro') return
+    if (!activeDialogue) return
+
+    speakNarration(activeDialogue.text, {
+      rate: activeDialogue.speaker.toLowerCase().includes('operador') ? 0.68 : 0.74,
+      pitch: activeDialogue.speaker.toLowerCase().includes('operador') ? 0.34 : 0.5,
+      volume: 0.86,
+      lang: 'es-ES',
+    })
+
+    return () => stopNarration()
+  }, [activeDialogue?.id, activeDialogue?.text, activeDialogue?.speaker, isAudioReady, isNarratorEnabled, screen, speakNarration])
 
   // ── SFX: pasos del jugador ───────────────────────
   useEffect(() => {
@@ -229,8 +261,8 @@ export function CintaRojaGame() {
           <GameUI
             player={gameState.player}
             level={currentLevel}
-            currentDialogue={screen === 'dialogue' ? getCurrentDialogue() : null}
-            onTypeVoice={handleTypeVoice}
+            currentDialogue={screen === 'dialogue' ? activeDialogue : null}
+            onTypeVoice={isNarratorEnabled ? undefined : handleTypeVoice}
             onAdvanceDialogue={() => {
               audio.playSound('dialogue_blip', 0.25)
               audio.stopNarrator()
@@ -272,8 +304,8 @@ export function CintaRojaGame() {
       {screen === 'intro' && (
         <div className="relative w-full h-screen">
           <IntroScreen
-            dialogue={getCurrentDialogue()}
-            onTypeVoice={handleTypeVoice}
+            dialogue={activeDialogue}
+            onTypeVoice={isNarratorEnabled ? undefined : handleTypeVoice}
             onAdvance={() => {
               audio.playSound('dialogue_blip', 0.2)
               audio.stopNarrator()
@@ -303,7 +335,9 @@ export function CintaRojaGame() {
       {/* Audio Controls HUD — siempre visible */}
       <AudioControls
         isMuted={audio.isMuted}
+        isNarratorEnabled={isNarratorEnabled}
         onToggleMute={audio.toggleMute}
+        onToggleNarrator={toggleNarrator}
         onMasterVolume={audio.setMasterVolume}
         onMusicVolume={audio.setMusicVolume}
         onSFXVolume={audio.setSFXVolume}
