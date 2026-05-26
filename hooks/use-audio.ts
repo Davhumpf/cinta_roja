@@ -176,6 +176,65 @@ function playVoiceTick(
   index: number,
   volume = 0.9,
 ) {
+  {
+    void speaker
+  if (!/[a-záéíóúñ0-9.,;:!?¿¡]/i.test(char)) return
+
+  const now = ctx.currentTime
+  const isPunctuation = /[.,;:!?¿¡]/.test(char)
+  const keySeed = (char.charCodeAt(0) * 17 + index * 23) % 100
+  const dur = isPunctuation ? 0.045 : 0.032 + (keySeed % 8) / 1000
+  const clickVolume = volume * (isPunctuation ? 0.048 : 0.068 + (keySeed % 5) * 0.004)
+
+  const master = createGain(ctx, 0)
+  const clickFilter = createFilter(ctx, 'bandpass', isPunctuation ? 1900 : 2400 + keySeed * 8, 3.8)
+  const bodyFilter = createFilter(ctx, 'lowpass', 520 + keySeed * 2, 0.9)
+  const clickGain = createGain(ctx, clickVolume)
+  const bodyGain = createGain(ctx, clickVolume * 0.65)
+
+  master.connect(dest)
+  clickFilter.connect(clickGain)
+  bodyFilter.connect(bodyGain)
+  clickGain.connect(master)
+  bodyGain.connect(master)
+
+  const noiseLength = Math.max(1, Math.floor(ctx.sampleRate * dur))
+  const noiseBuffer = ctx.createBuffer(1, noiseLength, ctx.sampleRate)
+  const data = noiseBuffer.getChannelData(0)
+  for (let i = 0; i < noiseLength; i++) {
+    const t = i / noiseLength
+    const snap = Math.exp(-t * 17)
+    data[i] = (Math.random() * 2 - 1) * snap
+  }
+
+  const click = ctx.createBufferSource()
+  click.buffer = noiseBuffer
+  click.connect(clickFilter)
+  click.start(now)
+  click.stop(now + dur)
+
+  const thock = createOsc(ctx, 145 + (keySeed % 35), 'triangle')
+  thock.connect(bodyFilter)
+  thock.start(now)
+  bodyGain.gain.setValueAtTime(clickVolume * 0.65, now)
+  bodyGain.gain.exponentialRampToValueAtTime(0.001, now + dur + 0.018)
+  thock.stop(now + dur + 0.02)
+
+  if (isPunctuation || index % 38 === 0) {
+    const bell = createOsc(ctx, 1240 + (keySeed % 80), 'sine')
+    const bellGain = createGain(ctx, volume * 0.018)
+    bell.connect(bellGain)
+    bellGain.connect(master)
+    bell.start(now + 0.012)
+    bellGain.gain.setValueAtTime(volume * 0.018, now + 0.012)
+    bellGain.gain.exponentialRampToValueAtTime(0.001, now + 0.16)
+    bell.stop(now + 0.17)
+  }
+
+  master.gain.setValueAtTime(0.95, now)
+  master.gain.exponentialRampToValueAtTime(0.001, now + 0.18)
+    return
+  }
   if (!/[a-záéíóúñ0-9]/i.test(char)) return
 
   const now = ctx.currentTime
