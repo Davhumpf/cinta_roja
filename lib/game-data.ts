@@ -668,6 +668,8 @@ export const dialogues: Record<string, Dialogue> = {
     id: 'final_truth_2',
     speaker: 'Adrián',
     text: 'Pero ya no quiero huir más. Acepto lo que hice. Acepto la verdad.',
+    effect: 'trigger_event',
+    effectData: 'solve_truth_puzzle',
     nextDialogueId: 'nicolas_final',
   },
   'nicolas_final': {
