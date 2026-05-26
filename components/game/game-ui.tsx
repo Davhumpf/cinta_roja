@@ -541,7 +541,7 @@ function ObjectivePanel({ puzzle, isDarkLevel }: { puzzle?: Puzzle; isDarkLevel:
             <h3 className="truncate text-sm font-black uppercase tracking-[0.12em] text-slate-100">{puzzle.name}</h3>
           </div>
           <p className="mt-2 text-[10px] leading-5 text-slate-400">
-            {puzzle.type === 'logic'
+            {puzzle.id === 'logic_puzzle'
               ? 'Lee los 3 carteles y compara los simbolos antes de elegir una puerta.'
               : puzzle.hint}
           </p>

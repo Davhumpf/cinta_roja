@@ -1003,6 +1003,22 @@ export function useGameEngine() {
         }
       }
 
+      const truthPuzzle = level.puzzles.find(p => p.id === 'truth_puzzle')
+      const finalOperator = level.enemies.find(enemy => enemy.id === 'operator_final')
+      if (truthPuzzle && finalOperator && !truthPuzzle.isSolved) {
+        const dist = Math.sqrt(
+          Math.pow(playerCenter.x - (finalOperator.position.x + finalOperator.width / 2), 2) +
+          Math.pow(playerCenter.y - (finalOperator.position.y + finalOperator.height / 2), 2)
+        )
+
+        if (dist < 120) {
+          setDialogueQueue(['operator_question_1'])
+          setCurrentDialogueIndex(0)
+          setScreen('dialogue')
+          return { ...prev, isShowingDialogue: true }
+        }
+      }
+
       const logicPuzzle = level.puzzles.find(p => p.id === 'logic_puzzle')
       if (logicPuzzle && !logicPuzzle.isSolved) {
         for (const door of level.obstacles.filter(o => o.type === 'door' && o.id.startsWith('door_'))) {
@@ -1234,9 +1250,29 @@ export function useGameEngine() {
         glitchIntensity: Math.min(100, prev.glitchIntensity + 30),
       }))
     }
+
+    if (currentDialogue?.effect === 'trigger_event' && currentDialogue.effectData === 'solve_truth_puzzle') {
+      setGameState(prev => {
+        const level = prev.levels[prev.currentLevel]
+        const newLevels = [...prev.levels]
+
+        newLevels[prev.currentLevel] = {
+          ...level,
+          exitLocked: false,
+          puzzles: level.puzzles.map(puzzle =>
+            puzzle.id === 'truth_puzzle' ? { ...puzzle, isSolved: true } : puzzle
+          ),
+        }
+
+        return { ...prev, levels: newLevels, glitchIntensity: Math.min(100, prev.glitchIntensity + 20) }
+      })
+    }
     
     if (currentDialogueIndex < dialogueQueue.length - 1) {
       setCurrentDialogueIndex(prev => prev + 1)
+    } else if (currentDialogue?.nextDialogueId) {
+      setDialogueQueue([currentDialogue.nextDialogueId])
+      setCurrentDialogueIndex(0)
     } else {
       setDialogueQueue([])
       setCurrentDialogueIndex(0)
