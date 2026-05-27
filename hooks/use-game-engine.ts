@@ -55,12 +55,27 @@ export function useGameEngine() {
 
   useEffect(() => {
     if (typeof window === 'undefined') return
+    const tutorialMigrationKey = 'cinta-roja-tutorial-zero-migrated'
     const savedUnlocked = window.localStorage.getItem('cinta-roja-max-unlocked-level')
-    if (!savedUnlocked) return
+    const hasMigratedTutorial = window.localStorage.getItem(tutorialMigrationKey) === 'true'
+
+    if (!savedUnlocked) {
+      window.localStorage.setItem(tutorialMigrationKey, 'true')
+      return
+    }
 
     const parsed = Number.parseInt(savedUnlocked, 10)
     if (!Number.isNaN(parsed)) {
-      setMaxUnlockedLevel(Math.min(Math.max(parsed, 0), levels.length - 1))
+      const migratedLevel = !hasMigratedTutorial && levels[0]?.id === 0
+        ? Math.min(parsed + 1, levels.length - 1)
+        : parsed
+
+      if (!hasMigratedTutorial) {
+        window.localStorage.setItem(tutorialMigrationKey, 'true')
+        window.localStorage.setItem('cinta-roja-max-unlocked-level', String(migratedLevel))
+      }
+
+      setMaxUnlockedLevel(Math.min(Math.max(migratedLevel, 0), levels.length - 1))
     }
   }, [])
   
@@ -624,7 +639,7 @@ export function useGameEngine() {
         
         newLevels[prev.currentLevel] = { ...newLevels[prev.currentLevel], isCompleted: true }
         
-        if (prev.currentLevel >= 9) {
+        if (prev.currentLevel >= levels.length - 1) {
           return { ...newState, player: newPlayer, levels: newLevels, isVictory: true }
         } else {
           const nextLevel = prev.currentLevel + 1
@@ -641,6 +656,12 @@ export function useGameEngine() {
           if (nextLevelData.introDialogueIds.length > 0) {
             dialoguesToShow = [...dialoguesToShow, ...nextLevelData.introDialogueIds]
             shouldTriggerDialogue = true
+          }
+
+          if (shouldTriggerDialogue && dialoguesToShow.length > 0) {
+            setDialogueQueue(dialoguesToShow)
+            setCurrentDialogueIndex(0)
+            setScreen('dialogue')
           }
           
           setDetectionCount(0)
