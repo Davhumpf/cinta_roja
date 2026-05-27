@@ -16,11 +16,45 @@ export const initialPlayer: Player = {
   isSprinting: false,
   stamina: 100,
   hasFlashlight: true,
-  flashlightBroken: true, // Starts broken in level 1
+  flashlightBroken: true, // Relevant once the darker levels begin
 }
 
 // All game dialogues
 export const dialogues: Record<string, Dialogue> = {
+  // Level 0 - Tutorial
+  'tutorial_intro_1': {
+    id: 'tutorial_intro_1',
+    speaker: 'Narrador',
+    text: 'Antes de la primera cinta, Adrián despierta frente a una sala de pruebas que no recuerda.',
+    nextDialogueId: 'tutorial_intro_2',
+  },
+  'tutorial_intro_2': {
+    id: 'tutorial_intro_2',
+    speaker: 'Sistema',
+    text: '[NIVEL 0: Muévete con WASD o flechas. Mantén Shift para correr cuando tengas espacio.]',
+    nextDialogueId: 'tutorial_intro_3',
+  },
+  'tutorial_intro_3': {
+    id: 'tutorial_intro_3',
+    speaker: 'Sistema',
+    text: '[TUTORIAL: Toca objetos brillantes para recogerlos. Acércate a la puerta roja y pulsa E o Enter para interactuar.]',
+  },
+  'tutorial_key_found': {
+    id: 'tutorial_key_found',
+    speaker: 'Sistema',
+    text: '[LLAVE DE PRÁCTICA] Acércate a la puerta roja y pulsa E para abrirla.',
+  },
+  'tutorial_note_found': {
+    id: 'tutorial_note_found',
+    speaker: 'Sistema',
+    text: '[NOTA] Los refugios marcados como HIDE se usan con H o E. Cuando algo te persiga, esconderte puede darte unos segundos.',
+  },
+  'complete_0': {
+    id: 'complete_0',
+    speaker: 'Adrián',
+    text: 'Listo. Ya conozco las reglas. Ahora toca enfrentar la cinta roja.',
+  },
+
   // Level 1 - El Apartamento
   'intro_1': {
     id: 'intro_1',
@@ -700,6 +734,93 @@ export const dialogues: Record<string, Dialogue> = {
 
 // Level definitions with complex puzzles
 export const levels: Level[] = [
+  // Level 0 - Tutorial
+  {
+    id: 0,
+    name: 'Nivel Cero',
+    description: 'Una sala de pruebas para aprender a sobrevivir antes de que empiece la cinta.',
+    objective: 'Aprende a moverte, recoger una llave, usar E para abrir puertas y cruzar la salida verde.',
+    width: 800,
+    height: 520,
+    playerStart: { x: 80, y: 240 },
+    backgroundColor: '#0b1018',
+    ambientColor: '#101826',
+    fogOfWar: false,
+    obstacles: [
+      { id: 'tutorial_wall_top', type: 'wall', position: { x: 0, y: 0 }, width: 800, height: 40, solid: true },
+      { id: 'tutorial_wall_bottom', type: 'wall', position: { x: 0, y: 480 }, width: 800, height: 40, solid: true },
+      { id: 'tutorial_wall_left', type: 'wall', position: { x: 0, y: 0 }, width: 40, height: 520, solid: true },
+      { id: 'tutorial_wall_right', type: 'wall', position: { x: 760, y: 0 }, width: 40, height: 520, solid: true },
+      { id: 'tutorial_partition_top', type: 'wall', position: { x: 510, y: 40 }, width: 58, height: 145, solid: true },
+      { id: 'tutorial_partition_bottom', type: 'wall', position: { x: 510, y: 325 }, width: 58, height: 155, solid: true },
+      { id: 'tutorial_table', type: 'furniture', position: { x: 140, y: 80 }, width: 120, height: 48, solid: true },
+      { id: 'tutorial_sofa', type: 'furniture', position: { x: 88, y: 360 }, width: 120, height: 52, solid: true },
+      { id: 'tutorial_shelves', type: 'furniture', position: { x: 620, y: 75 }, width: 92, height: 50, solid: true },
+      { id: 'tutorial_hiding_spot', type: 'hiding_spot', position: { x: 320, y: 85 }, width: 80, height: 55, solid: false, canHideIn: true },
+      { id: 'tutorial_door', type: 'door', position: { x: 510, y: 185 }, width: 58, height: 140, solid: true, isOpen: false, requiresKey: 'tutorial_key' },
+    ],
+    enemies: [],
+    collectibles: [
+      {
+        id: 'tutorial_note',
+        type: 'document',
+        position: { x: 180, y: 145 },
+        width: 16,
+        height: 20,
+        collected: false,
+        dialogueId: 'tutorial_note_found',
+        hidden: false,
+        inventoryItem: {
+          id: 'tutorial_note',
+          type: 'document',
+          name: 'Nota de Práctica',
+          description: 'Una nota del sistema sobre refugios e interacción.',
+        },
+      },
+      {
+        id: 'tutorial_key',
+        type: 'key',
+        position: { x: 265, y: 360 },
+        width: 24,
+        height: 16,
+        collected: false,
+        dialogueId: 'tutorial_key_found',
+        hidden: false,
+        inventoryItem: {
+          id: 'tutorial_key',
+          type: 'key',
+          name: 'Llave de Práctica',
+          description: 'Abre la puerta roja de la sala de tutorial.',
+        },
+      },
+    ],
+    npcs: [],
+    switches: [],
+    puzzles: [],
+    pressurePlates: [],
+    hazardZones: [],
+    hints: [
+      { id: 'tutorial_hint_key', text: 'La llave brilla en el ala izquierda. Tócala para recogerla.', triggerCondition: 'time', conditionValue: 30, hasBeenShown: false },
+      { id: 'tutorial_hint_door', text: 'Con la llave en inventario, acércate a la puerta roja y pulsa E.', triggerCondition: 'time', conditionValue: 60, hasBeenShown: false },
+    ],
+    hidingSpots: [{ x: 320, y: 85 }],
+    exitPosition: { x: 705, y: 215 },
+    exitWidth: 50,
+    exitHeight: 90,
+    exitLocked: false,
+    introDialogueIds: ['tutorial_intro_1', 'tutorial_intro_2', 'tutorial_intro_3'],
+    completionDialogueIds: ['complete_0'],
+    requiredTapes: 0,
+    isCompleted: false,
+    deathCount: 0,
+    timeSpent: 0,
+    decorations: [
+      { id: 'tutorial_poster', type: 'poster', position: { x: 92, y: 50 }, width: 32, height: 44, rotation: -4 },
+      { id: 'tutorial_cables', type: 'cables', position: { x: 470, y: 195 }, width: 34, height: 95, opacity: 0.5 },
+      { id: 'tutorial_crack', type: 'crack', position: { x: 630, y: 345 }, width: 44, height: 34, opacity: 0.35 },
+      { id: 'tutorial_trash', type: 'trash', position: { x: 235, y: 405 }, width: 26, height: 18 },
+    ],
+  },
   // Level 1 - El Apartamento (Tutorial level with fuse puzzle)
   {
     id: 1,

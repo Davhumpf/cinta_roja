@@ -293,7 +293,7 @@ export function CintaRojaGame() {
               onResume={togglePause}
               onQuit={() => window.location.reload()}
               onOpenLevels={() => setScreen('title')}
-              currentLevel={gameState.currentLevel + 1}
+              currentLevel={currentLevel.id}
               totalTapes={gameState.totalTapesCollected}
             />
           )}
@@ -319,7 +319,7 @@ export function CintaRojaGame() {
       {gameState.isGameOver && (
         <GameOverScreen
           onRetry={restartLevel}
-          currentLevel={gameState.currentLevel + 1}
+          currentLevel={currentLevel.id}
         />
       )}
 
